@@ -13,19 +13,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $seoTitle ?? config('etic.store.name') }}</title>
+    <title>{{ $seoTitle ?? $eticStore->name() }}</title>
     <meta name="description" content="{{ $seoDescription ?? 'Türk pazarına özel e-ticaret.' }}">
     @if(!empty($canonical))
         <link rel="canonical" href="{{ $canonical }}">
     @endif
     <meta name="robots" content="{{ $robots }}">
-    <meta property="og:title" content="{{ $ogTitle ?? ($seoTitle ?? config('etic.store.name')) }}">
+    <meta property="og:title" content="{{ $ogTitle ?? ($seoTitle ?? $eticStore->name()) }}">
     <meta property="og:description" content="{{ $ogDescription ?? ($seoDescription ?? '') }}">
     @if(!empty($ogImage))
         <meta property="og:image" content="{{ $ogImage }}">
-    @endif
-    @if(config('etic.tracking.search_console_verification'))
-        <meta name="google-site-verification" content="{{ config('etic.tracking.search_console_verification') }}">
     @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
@@ -34,7 +31,7 @@
 <body class="bg-neutral-50 text-neutral-900 antialiased">
     <header class="border-b bg-white">
         <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-            <a href="{{ route('home') }}" class="text-lg font-semibold tracking-tight">ETIC BOXER</a>
+            <a href="{{ route('home') }}" class="text-lg font-semibold tracking-tight">{{ $eticStore->name() }}</a>
             <nav class="hidden items-center gap-6 text-sm md:flex">
                 <a href="{{ route('catalog') }}">Ürünler</a>
                 <a href="{{ route('blog.index') }}">Blog</a>
@@ -68,7 +65,7 @@
     </main>
     <footer class="border-t bg-white">
         <div class="mx-auto flex max-w-6xl flex-wrap justify-between gap-4 px-4 py-8 text-sm text-neutral-600">
-            <p>&copy; {{ date('Y') }} Etic Commerce</p>
+            <p>&copy; {{ date('Y') }} {{ $eticStore->name() }}</p>
             <div class="flex gap-4">
                 <a href="{{ route('page', 'gizlilik') }}">Gizlilik</a>
                 <a href="{{ route('page', 'iade') }}">İade</a>

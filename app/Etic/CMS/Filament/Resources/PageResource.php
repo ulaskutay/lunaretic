@@ -4,6 +4,7 @@ namespace App\Etic\CMS\Filament\Resources;
 
 use App\Etic\CMS\Filament\Resources\PageResource\Pages;
 use App\Etic\CMS\Models\Page;
+use App\Etic\Support\Filament\ChannelSelect;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
@@ -40,6 +41,7 @@ class PageResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            ChannelSelect::make(),
             TextInput::make('title')
                 ->label(__('etic.filament.pages.title'))
                 ->required()

@@ -11,17 +11,25 @@ class ApplyRedirects
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $path = '/'.ltrim($request->getPathInfo(), '/');
+        $path = Redirect::normalizePath($request->getPathInfo());
 
         $redirect = Redirect::query()
+            ->forStore()
             ->where('is_active', true)
             ->where('from_path', $path)
             ->first();
 
-        if ($redirect) {
-            return redirect($redirect->to_url, $redirect->status_code);
+        if (! $redirect) {
+            return $next($request);
         }
 
-        return $next($request);
+        $target = $redirect->to_url;
+        $targetPath = Redirect::normalizePath(parse_url($target, PHP_URL_PATH) ?: $target);
+
+        if ($targetPath === $path && ! str_starts_with($target, 'http')) {
+            return $next($request);
+        }
+
+        return redirect($target, $redirect->status_code);
     }
 }

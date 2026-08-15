@@ -3,6 +3,7 @@
 namespace App\Etic\Storefront;
 
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
+use Lunar\Base\Validation\CouponValidatorInterface;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\Discounts;
 use Lunar\Models\Cart;
@@ -27,9 +28,12 @@ class CartManager
         }
 
         $cart = $this->current()->add($variant, $quantity);
+        $price = $variant->prices->first();
         $this->tracking->record('add_to_cart', [
             'item_id' => $variant->sku,
             'quantity' => $quantity,
+            'value' => TrackingDispatcher::fromMinor((int) ($price?->price?->value ?? 0) * $quantity),
+            'currency' => $price?->currency?->code ?? 'TRY',
         ]);
 
         return $cart->calculate();
@@ -67,11 +71,39 @@ class CartManager
 
     public function applyCoupon(string $code): Cart
     {
+        $code = trim($code);
+
+        if ($code === '' || ! $this->couponValidator()->validate($code)) {
+            throw new RuntimeException(__('etic.storefront.coupon.invalid'));
+        }
+
         $cart = $this->current();
         $cart->coupon_code = $code;
         $cart->save();
         Discounts::resetDiscounts();
 
+        $cart = $cart->recalculate();
+
+        $this->tracking->record('apply_coupon', [
+            'coupon' => $cart->coupon_code,
+            'value' => (int) ($cart->discountTotal?->value ?? 0),
+        ]);
+
+        return $cart;
+    }
+
+    public function removeCoupon(): Cart
+    {
+        $cart = $this->current();
+        $cart->coupon_code = null;
+        $cart->save();
+        Discounts::resetDiscounts();
+
         return $cart->recalculate();
+    }
+
+    private function couponValidator(): CouponValidatorInterface
+    {
+        return app(config('lunar.discounts.coupon_validator'));
     }
 }

@@ -12,7 +12,7 @@ return [
     | Specify whether the prices entered into the system include tax or not.
     |
     */
-    'stored_inclusive_of_tax' => env('LUNAR_STORE_INCLUSIVE_OF_TAX', false),
+    'stored_inclusive_of_tax' => filter_var(env('LUNAR_STORE_INCLUSIVE_OF_TAX', true), FILTER_VALIDATE_BOOLEAN),
 
     /*
     |--------------------------------------------------------------------------

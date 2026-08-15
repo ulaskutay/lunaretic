@@ -2,13 +2,16 @@
 
 namespace App\Etic\Storefront\Http\Controllers;
 
+use App\Etic\CMS\Models\BlogCategory;
 use App\Etic\CMS\Models\BlogPost;
 use App\Etic\CMS\Models\Menu;
 use App\Etic\CMS\Models\Page;
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
+use App\Etic\Media\ProductImage;
 use App\Etic\SEO\CanonicalUrl;
 use App\Etic\SEO\SchemaBuilder;
 use App\Etic\Storefront\CartManager;
+use App\Etic\Storefront\CatalogFilters;
 use App\Etic\Storefront\CatalogQuery;
 use App\Etic\Storefront\CheckoutService;
 use App\Models\User;
@@ -17,7 +20,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Lunar\Facades\ShippingManifest;
-use Lunar\Models\Collection;
 use Lunar\Models\Customer;
 use Lunar\Models\Order;
 use RuntimeException;
@@ -33,30 +35,37 @@ class StorefrontController
             'products' => $products,
             'canonical' => $canonical->forPath('/'),
             'schemaJson' => $schema->encode($schema->organization(), $schema->website()),
-            'headerMenu' => Menu::query()->where('handle', 'header')->with('items.children')->first(),
-            'footerMenu' => Menu::query()->where('handle', 'footer')->with('items.children')->first(),
+            'headerMenu' => Menu::query()->forStore()->where('handle', 'header')->with('items.children')->first(),
+            'footerMenu' => Menu::query()->forStore()->where('handle', 'footer')->with('items.children')->first(),
         ]);
     }
 
     public function catalog(Request $request, CatalogQuery $catalog, TrackingDispatcher $tracking): View
     {
-        $products = $catalog->publishedProducts($request->string('q')->toString() ?: null, $request->string('sort')->toString() ?: 'newest');
-        $tracking->record('view_category', ['search' => $request->get('q')]);
+        $filters = CatalogFilters::fromRequest($request);
+        $products = $catalog->publishedProducts($filters);
+        $tracking->record('view_category', ['item_list_id' => 'catalog']);
 
         return view('theme::pages.catalog', [
             'products' => $products,
-            'collections' => Collection::query()->get(),
+            'collections' => $catalog->collections(),
+            'filters' => $filters,
+            'facets' => $catalog->facets(),
         ]);
     }
 
-    public function collection(string $slug, CatalogQuery $catalog): View
+    public function collection(Request $request, string $slug, CatalogQuery $catalog, TrackingDispatcher $tracking): View
     {
         $collection = $catalog->collectionBySlug($slug);
+        $filters = CatalogFilters::fromRequest($request);
+        $tracking->record('view_category', ['item_list_id' => $slug]);
 
         return view('theme::pages.catalog', [
-            'products' => $collection->products()->where('status', 'published')->with(['media', 'thumbnail', 'defaultUrl'])->paginate(12),
-            'collections' => Collection::query()->get(),
+            'products' => $catalog->publishedProducts($filters, $collection),
+            'collections' => $catalog->collections(),
             'currentCollection' => $collection,
+            'filters' => $filters,
+            'facets' => $catalog->facets(),
         ]);
     }
 
@@ -65,7 +74,12 @@ class StorefrontController
         $product = $catalog->productBySlug($slug);
         $variant = $product->variants->first();
         $price = $variant?->prices->first();
-        $tracking->record('view_item', ['item_id' => $variant?->sku]);
+        $tracking->record('view_item', [
+            'item_id' => $variant?->sku,
+            'item_name' => $product->translateAttribute('name'),
+            'value' => TrackingDispatcher::fromMinor((int) ($price?->price?->value ?? 0)),
+            'currency' => $price?->currency?->code ?? 'TRY',
+        ]);
 
         $url = $canonical->forPath('p/'.$slug);
 
@@ -79,26 +93,28 @@ class StorefrontController
                 (int) ($price?->price?->value ?? 0),
                 $price?->currency?->code ?? 'TRY',
                 (bool) $variant?->canBeFulfilledAtQuantity(1),
-                \App\Etic\Media\ProductImage::url($product),
+                ProductImage::url($product),
             )),
         ]);
     }
 
     public function search(Request $request, CatalogQuery $catalog, TrackingDispatcher $tracking): View
     {
-        $q = $request->string('q')->toString();
-        $tracking->record('search', ['search_term' => $q]);
+        $filters = CatalogFilters::fromRequest($request);
+        $tracking->record('search', ['search_term' => $filters->search]);
 
         return view('theme::pages.catalog', [
-            'products' => $catalog->publishedProducts($q),
-            'collections' => Collection::query()->get(),
-            'search' => $q,
+            'products' => $catalog->publishedProducts($filters),
+            'collections' => $catalog->collections(),
+            'search' => $filters->search,
+            'filters' => $filters,
+            'facets' => $catalog->facets(),
         ]);
     }
 
     public function page(string $slug, CanonicalUrl $canonical): View
     {
-        $page = Page::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $page = Page::query()->forStore()->where('slug', $slug)->where('is_published', true)->firstOrFail();
 
         return view('theme::pages.cms', [
             'page' => $page,
@@ -106,19 +122,39 @@ class StorefrontController
         ]);
     }
 
-    public function blogIndex(): View
+    public function blogIndex(Request $request): View
     {
+        $categorySlug = $request->string('kategori')->toString() ?: null;
+        $posts = BlogPost::query()
+            ->forStore()
+            ->published()
+            ->with('category')
+            ->when($categorySlug, fn ($query) => $query->whereHas('category', fn ($category) => $category->where('slug', $categorySlug)))
+            ->latest('published_at')
+            ->paginate(10)
+            ->withQueryString();
+
         return view('theme::pages.blog-index', [
-            'posts' => BlogPost::query()->where('is_published', true)->latest('published_at')->paginate(10),
+            'posts' => $posts,
+            'categories' => BlogCategory::query()->forStore()->orderBy('name')->get(),
+            'currentCategory' => $categorySlug,
         ]);
     }
 
     public function blogShow(string $slug, CanonicalUrl $canonical, SchemaBuilder $schema): View
     {
-        $post = BlogPost::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $post = BlogPost::query()->forStore()->published()->with(['category', 'tags'])->where('slug', $slug)->firstOrFail();
 
         return view('theme::pages.blog-show', [
             'post' => $post,
+            'related' => BlogPost::query()
+                ->forStore()
+                ->published()
+                ->whereKeyNot($post->id)
+                ->when($post->blog_category_id, fn ($query) => $query->where('blog_category_id', $post->blog_category_id))
+                ->latest('published_at')
+                ->limit(3)
+                ->get(),
             'canonical' => $canonical->forModel($post, 'blog/'.$slug),
             'schemaJson' => $schema->encode($schema->article($post->title, $canonical->forPath('blog/'.$slug), $post->published_at?->toIso8601String())),
         ]);
@@ -140,6 +176,7 @@ class StorefrontController
 
         try {
             $carts->add((int) $data['variant_id'], (int) $data['quantity']);
+            app(TrackingDispatcher::class)->flashLast();
         } catch (RuntimeException $e) {
             return back()->withErrors(['cart' => $e->getMessage()]);
         }
@@ -172,15 +209,35 @@ class StorefrontController
 
     public function coupon(Request $request, CartManager $carts): RedirectResponse
     {
-        $carts->applyCoupon($request->validate(['code' => ['required', 'string', 'max:50']])['code']);
+        $code = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+        ], [
+            'code.required' => __('etic.storefront.coupon.required'),
+        ])['code'];
 
-        return back()->with('status', 'Kupon uygulandı.');
+        try {
+            $carts->applyCoupon($code);
+        } catch (RuntimeException $e) {
+            return back()->withInput()->withErrors(['code' => $e->getMessage()]);
+        }
+
+        return back()->with('status', __('etic.storefront.coupon.applied'));
+    }
+
+    public function removeCoupon(CartManager $carts): RedirectResponse
+    {
+        $carts->removeCoupon();
+
+        return back()->with('status', __('etic.storefront.coupon.removed'));
     }
 
     public function checkout(CartManager $carts, TrackingDispatcher $tracking): View
     {
         $cart = $carts->current()->calculate();
-        $tracking->record('begin_checkout', ['value' => $cart->total?->value]);
+        $tracking->record('begin_checkout', [
+            'value' => TrackingDispatcher::fromMinor((int) ($cart->total?->value ?? 0)),
+            'currency' => $cart->currency?->code ?? 'TRY',
+        ]);
 
         return view('theme::pages.checkout', [
             'cart' => $cart,

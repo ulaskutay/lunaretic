@@ -3,7 +3,6 @@
 namespace App\Etic\SEO;
 
 use App\Etic\Support\StoreContext;
-use Illuminate\Support\Collection;
 
 class SchemaBuilder
 {
@@ -14,7 +13,7 @@ class SchemaBuilder
         return [
             '@context' => 'https://schema.org',
             '@type' => 'Organization',
-            'name' => config('etic.store.name'),
+            'name' => $this->store->name(),
             'url' => $this->store->primaryUrl(),
         ];
     }
@@ -24,7 +23,7 @@ class SchemaBuilder
         return [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',
-            'name' => config('etic.store.name'),
+            'name' => $this->store->name(),
             'url' => $this->store->primaryUrl(),
             'potentialAction' => [
                 '@type' => 'SearchAction',

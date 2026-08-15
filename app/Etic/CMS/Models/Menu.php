@@ -2,11 +2,14 @@
 
 namespace App\Etic\CMS\Models;
 
+use App\Etic\Support\Concerns\BelongsToChannel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Menu extends Model
 {
+    use BelongsToChannel;
+
     protected $table = 'etic_menus';
 
     protected $fillable = ['name', 'handle', 'channel_id'];

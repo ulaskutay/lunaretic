@@ -17,16 +17,17 @@ Priority filter: *Does this help launch the first boxer store or sell the platfo
 
 ## P1 — Important after first sale
 
-- Coupon UX on storefront (Lunar discounts)
-- Blog
-- Redirect manager
-- GA4 / Meta event bus wiring
-- Google Merchant feed
-- Advanced product filtering
+- [x] Coupon UX on storefront (Lunar discounts)
+- [x] Blog
+- [x] Redirect manager
+- [x] GA4 / Meta event bus wiring
+- [x] Google Merchant feed
+- [x] Advanced product filtering
 
 ## P2 — Later
 
-- Multi-tenant SaaS / billing
+- [x] Multi-store (domain → channel, theme, isolated credentials; shared DB)
+- Multi-tenant SaaS billing
 - Additional payment (PayTR, Stripe)
 - Cargo APIs (Yurtiçi, MNG, Aras, Sürat, Hepsijet)
 - Marketplace, B2B, ERP, CRM

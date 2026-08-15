@@ -32,9 +32,22 @@
             <input type="hidden" name="payment_token" value="test-token">
             <button class="rounded-full bg-neutral-900 px-6 py-3 text-white">Siparişi tamamla</button>
         </form>
-        <aside class="rounded-2xl bg-white p-4">
-            <h2 class="font-medium">Özet</h2>
-            <p class="mt-4">Toplam: {{ $cart->total?->formatted() }}</p>
+        <aside class="space-y-4">
+            <div class="rounded-2xl bg-white p-4">
+                <h2 class="font-medium">Özet</h2>
+                <ul class="mt-4 space-y-2 text-sm">
+                    @foreach($cart->lines as $line)
+                        <li class="flex justify-between gap-3">
+                            <span>{{ $line->purchasable?->sku }} × {{ $line->quantity }}</span>
+                            <span>{{ $line->total?->formatted() }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+                <div class="mt-4">
+                    @include('theme::partials.cart-totals', ['cart' => $cart, 'showShipping' => true])
+                </div>
+            </div>
+            @include('theme::partials.coupon-form', ['cart' => $cart])
         </aside>
     </div>
 </x-storefront-layout>

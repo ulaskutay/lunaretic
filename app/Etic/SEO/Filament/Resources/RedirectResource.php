@@ -4,7 +4,9 @@ namespace App\Etic\SEO\Filament\Resources;
 
 use App\Etic\SEO\Filament\Resources\RedirectResource\Pages;
 use App\Etic\SEO\Models\Redirect;
+use App\Etic\Support\Filament\ChannelSelect;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -39,17 +41,24 @@ class RedirectResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            ChannelSelect::make(),
             TextInput::make('from_path')
                 ->label(__('etic.filament.redirects.from'))
                 ->required()
-                ->prefix('/'),
+                ->prefix('/')
+                ->helperText(__('etic.filament.redirects.from_help')),
             TextInput::make('to_url')
                 ->label(__('etic.filament.redirects.to'))
-                ->required(),
-            TextInput::make('status_code')
+                ->required()
+                ->helperText(__('etic.filament.redirects.to_help')),
+            Select::make('status_code')
                 ->label(__('etic.filament.redirects.status'))
-                ->numeric()
-                ->default(301),
+                ->options([
+                    301 => __('etic.filament.redirects.permanent'),
+                    302 => __('etic.filament.redirects.temporary'),
+                ])
+                ->default(301)
+                ->required(),
             Toggle::make('is_active')
                 ->label(__('etic.filament.redirects.active'))
                 ->default(true),

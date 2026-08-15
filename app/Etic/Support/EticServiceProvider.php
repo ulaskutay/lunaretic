@@ -2,10 +2,14 @@
 
 namespace App\Etic\Support;
 
+use App\Etic\CMS\Filament\Resources\BlogCategoryResource;
 use App\Etic\CMS\Filament\Resources\BlogPostResource;
 use App\Etic\CMS\Filament\Resources\MenuResource;
 use App\Etic\CMS\Filament\Resources\PageResource;
+use App\Etic\Integrations\Marketing\Filament\Pages\MarketingSettings;
+use App\Etic\Integrations\Marketing\Http\Middleware\HydrateTracking;
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
+use App\Etic\Integrations\Marketing\TrackingSettings;
 use App\Etic\Integrations\Payments\IyzicoPaymentType;
 use App\Etic\Integrations\Shipping\Filament\Pages\ShippingSettings;
 use App\Etic\Integrations\Shipping\ShippingProviderInterface;
@@ -14,7 +18,7 @@ use App\Etic\Integrations\Shipping\TableRateShippingProvider;
 use App\Etic\Media\MediaRelationManagerExtension;
 use App\Etic\Orders\Filament\ListOrdersExtension;
 use App\Etic\SEO\Filament\Resources\RedirectResource;
-use App\Etic\SEO\Http\Middleware\ApplyRedirects;
+use App\Etic\Store\Filament\Resources\StoreResource;
 use App\Etic\Store\Filament\Resources\StoreSettingResource;
 use App\Etic\Storefront\Livewire\AddToCart;
 use App\Etic\Storefront\Livewire\MiniCart;
@@ -24,8 +28,8 @@ use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
-use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Admin\Filament\Resources\OrderResource\Pages\ListOrders;
+use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Admin\Support\RelationManagers\MediaRelationManager;
 use Lunar\Base\ShippingModifiers;
 use Lunar\Facades\Payments;
@@ -65,12 +69,15 @@ class EticServiceProvider extends ServiceProvider
                 ])
                 ->pages([
                     ShippingSettings::class,
+                    MarketingSettings::class,
                 ])
                 ->resources([
                     PageResource::class,
                     BlogPostResource::class,
+                    BlogCategoryResource::class,
                     MenuResource::class,
                     RedirectResource::class,
+                    StoreResource::class,
                     StoreSettingResource::class,
                 ]);
         })->extensions([
@@ -118,10 +125,11 @@ class EticServiceProvider extends ServiceProvider
         View::composer('theme::*', function ($view) {
             $view->with('eticStore', app(StoreContext::class));
             $view->with('eticTracking', app(TrackingDispatcher::class));
+            $view->with('eticTrackingConfig', app(TrackingSettings::class)->resolved());
         });
 
         Blade::anonymousComponentPath(resource_path('themes/'.config('etic.theme', 'default').'/components'), 'theme');
 
-        $this->app['router']->pushMiddlewareToGroup('web', ApplyRedirects::class);
+        $this->app['router']->pushMiddlewareToGroup('web', HydrateTracking::class);
     }
 }

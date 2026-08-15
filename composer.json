@@ -51,6 +51,10 @@
             "Composer\\Config::disableProcessTimeout",
             "@php -d upload_max_filesize=64M -d post_max_size=64M -d memory_limit=256M artisan serve"
         ],
+        "deploy": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash scripts/deploy.sh"
+        ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"

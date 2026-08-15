@@ -62,9 +62,6 @@ class CheckoutService
         $cart->setShippingOption($option);
         $cart->calculate();
 
-        $this->tracking->record('add_payment_info', ['payment_type' => $payload['payment']]);
-        $this->tracking->record('purchase', ['value' => $cart->total?->value]);
-
         $result = Payments::driver($payload['payment'])
             ->cart($cart)
             ->withData([
@@ -80,6 +77,44 @@ class CheckoutService
 
         CartSession::forget();
 
-        return Order::query()->findOrFail($result->orderId);
+        $order = Order::query()->with('productLines')->findOrFail($result->orderId);
+        $value = TrackingDispatcher::fromMinor((int) $order->total->value);
+        $currency = $order->currency_code ?: 'TRY';
+
+        $this->tracking->record('add_payment_info', [
+            'payment_type' => $payload['payment'],
+            'value' => $value,
+            'currency' => $currency,
+            'user' => $this->trackingUser($payload),
+        ], flash: true);
+        $this->tracking->record('purchase', [
+            'transaction_id' => $order->reference,
+            'value' => $value,
+            'currency' => $currency,
+            'user' => $this->trackingUser($payload),
+            'items' => $order->productLines->map(fn ($line) => [
+                'item_id' => $line->identifier,
+                'item_name' => $line->description,
+                'quantity' => $line->quantity,
+                'price' => TrackingDispatcher::fromMinor((int) $line->unit_price->value),
+            ])->values()->all(),
+        ], flash: true);
+
+        return $order;
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    private function trackingUser(array $payload): array
+    {
+        return [
+            'email' => $payload['email'] ?? null,
+            'phone' => $payload['phone'] ?? null,
+            'first_name' => $payload['first_name'] ?? null,
+            'last_name' => $payload['last_name'] ?? null,
+            'city' => $payload['city'] ?? null,
+            'state' => $payload['state'] ?? null,
+            'zip' => $payload['postcode'] ?? null,
+            'country' => 'tr',
+        ];
     }
 }

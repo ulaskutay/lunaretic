@@ -3,8 +3,11 @@
 namespace App\Etic\Integrations\Shipping\Filament\Pages;
 
 use App\Etic\Integrations\Shipping\ShippingRates;
+use App\Etic\Store\Models\Store;
+use App\Etic\Support\StoreContext;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -48,11 +51,7 @@ class ShippingSettings extends Page
 
     public function mount(): void
     {
-        $rates = app(ShippingRates::class);
-
-        $this->form->fill([
-            'rates' => $rates->toFormState($rates->all()),
-        ]);
+        $this->fillFromStore(app(StoreContext::class)->handle());
     }
 
     public function defaultForm(Schema $schema): Schema
@@ -63,6 +62,12 @@ class ShippingSettings extends Page
     public function form(Schema $schema): Schema
     {
         return $schema->components([
+            Select::make('store_handle')
+                ->label(__('etic.filament.stores.label'))
+                ->options(fn () => Store::query()->orderBy('name')->pluck('name', 'handle'))
+                ->live()
+                ->afterStateUpdated(fn (?string $state) => $this->fillFromStore($state))
+                ->dehydrated(false),
             Section::make(__('etic.filament.shipping.section'))
                 ->description(__('etic.filament.shipping.help'))
                 ->schema([
@@ -125,6 +130,7 @@ class ShippingSettings extends Page
 
     public function save(): void
     {
+        $this->bindSelectedStore($this->data['store_handle'] ?? null);
         $state = $this->form->getState();
         $rates = app(ShippingRates::class);
         $rates->save($rates->fromFormState($state['rates'] ?? []));
@@ -133,5 +139,24 @@ class ShippingSettings extends Page
             ->title(__('etic.filament.shipping.saved'))
             ->success()
             ->send();
+    }
+
+    private function fillFromStore(?string $handle): void
+    {
+        $handle ??= app(StoreContext::class)->handle();
+        $this->bindSelectedStore($handle);
+        $rates = app(ShippingRates::class);
+
+        $this->form->fill([
+            'store_handle' => $handle,
+            'rates' => $rates->toFormState($rates->all()),
+        ]);
+    }
+
+    private function bindSelectedStore(?string $handle): void
+    {
+        if (filled($handle)) {
+            app(StoreContext::class)->bindByHandle($handle);
+        }
     }
 }

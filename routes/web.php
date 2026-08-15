@@ -1,5 +1,6 @@
 <?php
 
+use App\Etic\Integrations\Marketing\Http\Controllers\GoogleMerchantFeedController;
 use App\Etic\SEO\Http\Controllers\RobotsController;
 use App\Etic\SEO\Http\Controllers\SitemapController;
 use App\Etic\Storefront\Http\Controllers\StorefrontController;
@@ -21,6 +22,7 @@ Route::middleware(BindStorefrontSession::class)->group(function () {
     Route::patch('/sepet', [StorefrontController::class, 'updateCart'])->name('cart.update');
     Route::delete('/sepet', [StorefrontController::class, 'removeCart'])->name('cart.remove');
     Route::post('/sepet/kupon', [StorefrontController::class, 'coupon'])->name('cart.coupon');
+    Route::delete('/sepet/kupon', [StorefrontController::class, 'removeCoupon'])->name('cart.coupon.remove');
 
     Route::get('/odeme', [StorefrontController::class, 'checkout'])->name('checkout.show');
     Route::post('/odeme', [StorefrontController::class, 'placeOrder'])->name('checkout.place');
@@ -36,3 +38,4 @@ Route::middleware(BindStorefrontSession::class)->group(function () {
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/robots.txt', RobotsController::class)->name('robots');
+Route::get('/feed/google-merchant.xml', GoogleMerchantFeedController::class)->name('feed.google-merchant');

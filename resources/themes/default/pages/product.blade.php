@@ -25,10 +25,11 @@
             <div class="prose mt-4 text-neutral-600">{!! $product->translateAttribute('description') !!}</div>
             @php($price = $variant?->prices->first())
             @if($price)
-                <p class="mt-6 text-2xl font-medium">{{ $price->price->formatted() }}</p>
+                <p class="mt-6 text-2xl font-medium">{{ $price->priceIncTax()->formatted() }}</p>
                 @if($price->compare_price)
-                    <p class="text-sm text-neutral-500 line-through">{{ $price->compare_price->formatted() }}</p>
+                    <p class="text-sm text-neutral-500 line-through">{{ $price->comparePriceIncTax()->formatted() }}</p>
                 @endif
+                <p class="mt-1 text-xs text-neutral-500">{{ __('etic.storefront.totals.tax_included') }}</p>
             @endif
             <form method="post" action="{{ route('cart.add') }}" class="mt-6 space-y-3">
                 @csrf

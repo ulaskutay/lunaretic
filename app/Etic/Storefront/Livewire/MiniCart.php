@@ -15,9 +15,12 @@ class MiniCart extends Component
     {
         $cart = $carts->current()->calculate();
 
+        $discountValue = (int) ($cart->discountTotal?->value ?? 0);
+
         return view('theme::livewire.mini-cart', [
             'count' => $cart->lines->sum('quantity'),
             'total' => $cart->total?->formatted() ?? '0 ₺',
+            'discount' => $discountValue > 0 ? $cart->discountTotal?->formatted() : null,
         ]);
     }
 }

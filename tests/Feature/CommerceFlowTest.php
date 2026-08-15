@@ -1,13 +1,23 @@
 <?php
 
+use App\Etic\Integrations\Marketing\MetaConversionsClient;
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
+use App\Etic\Integrations\Marketing\TrackingSettings;
+use App\Etic\Integrations\Shipping\ShippingRates;
+use App\Etic\Integrations\Shipping\TableRateShippingProvider;
+use App\Etic\Media\MediaLibraryUploader;
+use App\Etic\Media\ProductImage;
 use App\Etic\Orders\OrderStatusScenario;
 use App\Etic\SEO\CanonicalUrl;
+use App\Etic\SEO\Models\Redirect;
 use App\Etic\Support\CommerceBootstrap;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Lunar\Facades\CartSession;
+use Lunar\Facades\Discounts;
 use Lunar\Models\Order;
 use Lunar\Models\Product;
+use Lunar\Models\ProductOptionValue;
 use Lunar\Models\ProductVariant;
 
 beforeEach(function () {
@@ -49,6 +59,30 @@ it('adds a variant to the cart and calculates totals', function () {
         ->and($cart->lines->first()->quantity)->toBe(2);
 });
 
+it('keeps vat inside the product price at checkout', function () {
+    $variant = ProductVariant::query()->first();
+    $stored = (int) $variant->prices->first()->price->value;
+
+    $this->post(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ]);
+
+    Discounts::resetDiscounts();
+    $cart = CartSession::current()?->recalculate();
+
+    expect(prices_inc_tax())->toBeTrue()
+        ->and((int) $cart?->lines->first()->total->value)->toBe($stored)
+        ->and((int) $cart?->total->value)->toBe($stored)
+        ->and((int) $cart?->taxTotal?->value)->toBeGreaterThan(0)
+        ->and((int) $cart?->total->value)->toBe((int) $cart?->subTotal->value)
+        ->and((int) $cart?->total->value)->toBeLessThan((int) round($stored * 1.1));
+
+    $this->get(route('checkout.show'))
+        ->assertOk()
+        ->assertSee(__('etic.storefront.totals.tax_included'));
+});
+
 it('applies a percentage coupon', function () {
     $variant = ProductVariant::query()->first();
 
@@ -57,12 +91,59 @@ it('applies a percentage coupon', function () {
         'quantity' => 1,
     ]);
 
-    $this->post(route('cart.coupon'), ['code' => 'BOXER10'])->assertRedirect();
+    $this->post(route('cart.coupon'), ['code' => 'boxer10'])
+        ->assertRedirect()
+        ->assertSessionHas('status');
 
-    \Lunar\Facades\Discounts::resetDiscounts();
+    Discounts::resetDiscounts();
     $cart = CartSession::current()?->recalculate();
     expect($cart?->coupon_code)->toBe('BOXER10')
         ->and((int) $cart?->discountTotal?->value)->toBeGreaterThan(0);
+
+    $this->get(route('cart.show'))
+        ->assertOk()
+        ->assertSee('BOXER10')
+        ->assertSee(__('etic.storefront.totals.discount'));
+
+    $this->get(route('checkout.show'))
+        ->assertOk()
+        ->assertSee('BOXER10');
+});
+
+it('rejects an invalid coupon and leaves the cart unchanged', function () {
+    $variant = ProductVariant::query()->first();
+
+    $this->post(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ]);
+
+    $this->from(route('cart.show'))
+        ->post(route('cart.coupon'), ['code' => 'GECERSIZ'])
+        ->assertRedirect(route('cart.show'))
+        ->assertSessionHasErrors('code');
+
+    expect(CartSession::current()?->coupon_code)->toBeNull();
+});
+
+it('removes an applied coupon', function () {
+    $variant = ProductVariant::query()->first();
+
+    $this->post(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ]);
+
+    $this->post(route('cart.coupon'), ['code' => 'BOXER10']);
+
+    $this->delete(route('cart.coupon.remove'))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    Discounts::resetDiscounts();
+    $cart = CartSession::current()?->recalculate();
+    expect($cart?->coupon_code)->toBeNull()
+        ->and((int) $cart?->discountTotal?->value)->toBe(0);
 });
 
 it('creates an order through offline checkout', function () {
@@ -96,20 +177,20 @@ it('creates an order through offline checkout', function () {
 
 it('authorizes iyzico when a token is present', function () {
     $variant = ProductVariant::query()->first();
-        $this->post(route('cart.add'), ['variant_id' => $variant->id, 'quantity' => 1]);
+    $this->post(route('cart.add'), ['variant_id' => $variant->id, 'quantity' => 1]);
 
-        $this->post(route('checkout.place'), [
-            'first_name' => 'Ali',
-            'last_name' => 'Yılmaz',
-            'email' => 'ali@example.com',
-            'phone' => '5551112233',
-            'line_one' => 'Test Cad. 1',
-            'city' => 'İstanbul',
-            'payment' => 'iyzico',
-            'payment_token' => 'tok_test',
-        ])->assertRedirect();
+    $this->post(route('checkout.place'), [
+        'first_name' => 'Ali',
+        'last_name' => 'Yılmaz',
+        'email' => 'ali@example.com',
+        'phone' => '5551112233',
+        'line_one' => 'Test Cad. 1',
+        'city' => 'İstanbul',
+        'payment' => 'iyzico',
+        'payment_token' => 'tok_test',
+    ])->assertRedirect();
 
-        expect(Order::query()->latest('id')->first()?->status)->toBe('payment-received');
+    expect(Order::query()->latest('id')->first()?->status)->toBe('payment-received');
 });
 
 it('walks an order through the fulfilment status scenario', function () {
@@ -164,7 +245,150 @@ it('records tracking events from a central dispatcher', function () {
     $dispatcher->record('view_item', ['item_id' => 'SKU']);
 
     expect($dispatcher->dataLayer())->toHaveCount(1)
-        ->and($dispatcher->dataLayer()[0]['event'])->toBe('view_item');
+        ->and($dispatcher->dataLayer()[0]['event'])->toBe('view_item')
+        ->and($dispatcher->metaCommands()[0]['event'])->toBe('ViewContent');
+});
+
+it('publishes blog posts and filters by category', function () {
+    $this->get(route('blog.index'))
+        ->assertOk()
+        ->assertSee('Doğru boxer nasıl seçilir?')
+        ->assertSee('Rehber');
+
+    $this->get(route('blog.index', ['kategori' => 'rehber']))
+        ->assertOk()
+        ->assertSee('Doğru boxer nasıl seçilir?');
+
+    $this->get(route('blog.show', 'boxer-rehberi'))
+        ->assertOk()
+        ->assertSee('kumaş', false);
+});
+
+it('applies an active redirect', function () {
+    Redirect::query()->create([
+        'from_path' => 'eski-boxer',
+        'to_url' => '/p/klasik-boxer',
+        'status_code' => 301,
+        'is_active' => true,
+    ]);
+
+    $this->get('/eski-boxer')->assertRedirect('/p/klasik-boxer');
+});
+
+it('serves a google merchant rss feed of variants', function () {
+    $this->get(route('feed.google-merchant'))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/xml; charset=UTF-8')
+        ->assertSee('g:id', false)
+        ->assertSee('BX-SIYAH-S', false)
+        ->assertSee('249.00 TRY', false);
+});
+
+it('uses panel marketing settings on the storefront and can hide the merchant feed', function () {
+    app(TrackingSettings::class)->save([
+        'ga4_measurement_id' => 'G-PANELTEST',
+        'meta_pixel_id' => '999111222',
+        'merchant_feed_enabled' => false,
+    ]);
+
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertSee('G-PANELTEST', false)
+        ->assertSee('999111222', false);
+
+    $this->get(route('feed.google-merchant'))->assertNotFound();
+});
+
+it('filters the catalog by colour and price', function () {
+    $black = ProductOptionValue::query()
+        ->whereHas('option', fn ($option) => $option->where('handle', 'color'))
+        ->get()
+        ->first(fn ($value) => $value->translate('name') === 'Siyah');
+
+    expect($black)->not->toBeNull();
+
+    $this->get(route('catalog', ['renk' => $black->id]))
+        ->assertOk()
+        ->assertSee('Klasik Boxer');
+
+    $this->get(route('catalog', ['min' => 400]))
+        ->assertOk()
+        ->assertDontSee('Klasik Boxer');
+});
+
+it('pushes purchase onto the success page data layer', function () {
+    $variant = ProductVariant::query()->first();
+
+    $this->post(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ]);
+
+    $this->post(route('checkout.place'), [
+        'first_name' => 'Ali',
+        'last_name' => 'Yılmaz',
+        'email' => 'ali@example.com',
+        'phone' => '5551112233',
+        'line_one' => 'Test Cad. 1',
+        'city' => 'İstanbul',
+        'payment' => 'cash-in-hand',
+    ])->assertRedirect();
+
+    $order = Order::query()->latest('id')->first();
+
+    $this->get(route('checkout.success', $order))
+        ->assertOk()
+        ->assertSee('eticTrack', false)
+        ->assertSee('purchase', false)
+        ->assertSee((string) $order->reference, false);
+});
+
+it('sends hashed purchase events to meta conversions api', function () {
+    Http::fake([
+        'https://graph.facebook.com/*' => Http::response(['events_received' => 1]),
+    ]);
+
+    app(TrackingSettings::class)->save([
+        'meta_pixel_id' => '1234567890',
+        'meta_capi_enabled' => true,
+        'meta_capi_token' => 'EAATESTTOKEN',
+        'meta_test_event_code' => 'TEST123',
+        'merchant_feed_enabled' => true,
+    ]);
+
+    $variant = ProductVariant::query()->first();
+
+    $this->post(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ]);
+
+    $this->post(route('checkout.place'), [
+        'first_name' => 'Ali',
+        'last_name' => 'Yılmaz',
+        'email' => 'ali@example.com',
+        'phone' => '5551112233',
+        'line_one' => 'Test Cad. 1',
+        'city' => 'İstanbul',
+        'payment' => 'cash-in-hand',
+    ])->assertRedirect();
+
+    $hashedEmail = MetaConversionsClient::hash('ali@example.com');
+    $hashedPhone = MetaConversionsClient::hash('905551112233');
+
+    Http::assertSent(function ($request) use ($hashedEmail, $hashedPhone) {
+        $json = $request->data();
+        $event = $json['data'][0] ?? [];
+
+        return str_contains($request->url(), '/1234567890/events')
+            && ($event['event_name'] ?? null) === 'Purchase'
+            && ($event['event_id'] ?? null)
+            && ($event['user_data']['em'][0] ?? null) === $hashedEmail
+            && ($event['user_data']['ph'][0] ?? null) === $hashedPhone
+            && ($json['test_event_code'] ?? null) === 'TEST123'
+            && ! str_contains($request->body(), 'ali@example.com')
+            && ! str_contains($request->body(), '5551112233');
+    });
 });
 
 it('requires authentication for the account page', function () {
@@ -199,7 +423,7 @@ it('uploads a png product image and generates a thumbnail', function () {
     expect($media->mime_type)->toBe('image/png')
         ->and(str_ends_with(strtolower($media->file_name), '.png'))->toBeTrue()
         ->and($media->hasGeneratedConversion('small'))->toBeTrue()
-        ->and(\App\Etic\Media\ProductImage::url($product->fresh()))->toContain('/storage/');
+        ->and(ProductImage::url($product->fresh()))->toContain('/storage/');
 
     @unlink($path);
 });
@@ -217,7 +441,7 @@ it('stores multiple product images and marks the first as primary', function () 
         $paths[] = $path;
     }
 
-    app(\App\Etic\Media\MediaLibraryUploader::class)->addMany($product, $paths, $collection, true);
+    app(MediaLibraryUploader::class)->addMany($product, $paths, $collection, true);
 
     $media = $product->fresh()->getMedia($collection);
     expect($media)->toHaveCount(2)
@@ -230,7 +454,7 @@ it('stores multiple product images and marks the first as primary', function () 
 });
 
 it('applies admin-saved shipping table rates', function () {
-    $rates = app(\App\Etic\Integrations\Shipping\ShippingRates::class);
+    $rates = app(ShippingRates::class);
     $rates->save([
         [
             'name' => 'Ekspres Kargo',
@@ -251,7 +475,7 @@ it('applies admin-saved shipping table rates', function () {
     ]);
 
     $cart = CartSession::current()?->calculate();
-    $options = app(\App\Etic\Integrations\Shipping\TableRateShippingProvider::class)->optionsFor($cart);
+    $options = app(TableRateShippingProvider::class)->optionsFor($cart);
 
     expect($options)->toHaveCount(1)
         ->and($options[0]->getName())->toBe('Ekspres Kargo')

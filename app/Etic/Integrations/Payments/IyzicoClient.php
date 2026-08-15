@@ -6,11 +6,13 @@ use Illuminate\Support\Facades\Http;
 
 class IyzicoClient
 {
+    public function __construct(private PaymentCredentials $credentials) {}
+
     public function confirm(?string $token, int $orderId): bool
     {
-        $apiKey = config('etic.iyzico.api_key');
+        $iyzico = $this->credentials->iyzico();
 
-        if (blank($apiKey)) {
+        if (blank($iyzico['api_key'])) {
             return filled($token);
         }
 
@@ -18,7 +20,7 @@ class IyzicoClient
             return false;
         }
 
-        $response = Http::baseUrl((string) config('etic.iyzico.base_url'))
+        $response = Http::baseUrl($iyzico['base_url'])
             ->asJson()
             ->post('/payment/iyzipos/checkoutform/auth/ecom/detail', [
                 'locale' => 'tr',
@@ -31,11 +33,11 @@ class IyzicoClient
 
     public function refund(string $paymentId, int $amountMinor): bool
     {
-        if (blank(config('etic.iyzico.api_key'))) {
+        if (blank($this->credentials->iyzico()['api_key'])) {
             return true;
         }
 
-        $response = Http::baseUrl((string) config('etic.iyzico.base_url'))
+        $response = Http::baseUrl($this->credentials->iyzico()['base_url'])
             ->asJson()
             ->post('/payment/refund', [
                 'paymentTransactionId' => $paymentId,
@@ -47,11 +49,11 @@ class IyzicoClient
 
     public function capture(string $paymentId, int $amountMinor): bool
     {
-        if (blank(config('etic.iyzico.api_key'))) {
+        if (blank($this->credentials->iyzico()['api_key'])) {
             return true;
         }
 
-        $response = Http::baseUrl((string) config('etic.iyzico.base_url'))
+        $response = Http::baseUrl($this->credentials->iyzico()['base_url'])
             ->asJson()
             ->post('/payment/iyzipos/checkoutform/auth/ecom', [
                 'paymentId' => $paymentId,

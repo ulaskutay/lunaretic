@@ -2,6 +2,8 @@
 .DS_Store
 .env
 .env.backup
+deploy.local.env
+deploy.config
 .env.production
 .phpactor.json
 .phpunit.result.cache

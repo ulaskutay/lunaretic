@@ -4,6 +4,7 @@ namespace App\Etic\CMS\Filament\Resources;
 
 use App\Etic\CMS\Filament\Resources\MenuResource\Pages;
 use App\Etic\CMS\Models\Menu;
+use App\Etic\Support\Filament\ChannelSelect;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
@@ -38,6 +39,7 @@ class MenuResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            ChannelSelect::make(),
             TextInput::make('name')
                 ->label(__('etic.filament.menus.name'))
                 ->required(),

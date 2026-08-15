@@ -2,11 +2,14 @@
 
 namespace App\Etic\Support;
 
+use App\Etic\CMS\Models\BlogCategory;
 use App\Etic\CMS\Models\BlogPost;
 use App\Etic\CMS\Models\Menu;
 use App\Etic\CMS\Models\MenuItem;
 use App\Etic\CMS\Models\Page;
+use App\Etic\Store\Models\Store;
 use App\Etic\Store\Models\StoreSetting;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lunar\Admin\Models\Staff;
 use Lunar\DiscountTypes\AmountOff;
@@ -56,16 +59,32 @@ class CommerceBootstrap
 
         Currency::query()->where('id', '!=', $currency->id)->update(['default' => false]);
 
-        $channel = Channel::query()->firstOrCreate(
+        $store = Store::query()->firstOrCreate(
             ['handle' => config('etic.store.handle', 'boxers')],
             [
                 'name' => config('etic.store.name', 'Etic Commerce'),
-                'default' => true,
-                'url' => config('app.url'),
+                'primary_domain' => Store::normalizeHost(parse_url((string) config('app.url'), PHP_URL_HOST)),
+                'theme' => (string) config('etic.theme', 'default'),
+                'locale' => (string) config('etic.store.locale', 'tr'),
+                'currency' => (string) config('etic.store.currency', 'TRY'),
+                'is_active' => true,
+                'is_default' => true,
             ]
         );
 
+        if (! $store->is_default || ! $store->is_active) {
+            $store->forceFill(['is_default' => true, 'is_active' => true])->save();
+        } else {
+            $store->syncChannel();
+        }
+
+        $channel = Channel::query()->where('handle', $store->handle)->firstOrFail();
+
         Channel::query()->where('id', '!=', $channel->id)->update(['default' => false]);
+
+        foreach (['etic_pages', 'etic_blog_posts', 'etic_menus', 'etic_blog_categories', 'etic_redirects'] as $table) {
+            DB::table($table)->whereNull('channel_id')->update(['channel_id' => $channel->id]);
+        }
 
         CustomerGroup::query()->firstOrCreate(
             ['handle' => 'retail'],
@@ -105,6 +124,14 @@ class CommerceBootstrap
                 'active' => true,
             ]
         );
+
+        $taxZone->forceFill([
+            'price_display' => 'tax_inclusive',
+            'default' => true,
+            'active' => true,
+        ])->save();
+
+        TaxZone::query()->where('id', '!=', $taxZone->id)->update(['default' => false]);
 
         $taxZone->countries()->firstOrCreate(['country_id' => $country->id]);
 
@@ -341,9 +368,11 @@ class CommerceBootstrap
             'iade' => 'İade',
         ];
 
+        $channelId = Channel::query()->where('handle', config('etic.store.handle'))->value('id');
+
         foreach ($pages as $slug => $title) {
             $page = Page::query()->firstOrCreate(
-                ['slug' => $slug],
+                ['slug' => $slug, 'channel_id' => $channelId],
                 [
                     'title' => $title,
                     'content' => '<p>'.$title.' içeriği.</p>',
@@ -358,12 +387,19 @@ class CommerceBootstrap
             ]);
         }
 
-        $header = Menu::query()->firstOrCreate(['handle' => 'header'], ['name' => 'Header']);
-        $footer = Menu::query()->firstOrCreate(['handle' => 'footer'], ['name' => 'Footer']);
+        $header = Menu::query()->firstOrCreate(
+            ['handle' => 'header', 'channel_id' => $channelId],
+            ['name' => 'Header']
+        );
+        $footer = Menu::query()->firstOrCreate(
+            ['handle' => 'footer', 'channel_id' => $channelId],
+            ['name' => 'Footer']
+        );
 
         if ($header->allItems()->doesntExist()) {
             MenuItem::query()->create(['menu_id' => $header->id, 'label' => 'Ürünler', 'url' => '/koleksiyon', 'position' => 1]);
-            MenuItem::query()->create(['menu_id' => $header->id, 'label' => 'Hakkımızda', 'url' => '/sayfa/hakkimizda', 'position' => 2]);
+            MenuItem::query()->create(['menu_id' => $header->id, 'label' => 'Blog', 'url' => '/blog', 'position' => 2]);
+            MenuItem::query()->create(['menu_id' => $header->id, 'label' => 'Hakkımızda', 'url' => '/sayfa/hakkimizda', 'position' => 3]);
         }
 
         if ($footer->allItems()->doesntExist()) {
@@ -371,8 +407,13 @@ class CommerceBootstrap
             MenuItem::query()->create(['menu_id' => $footer->id, 'label' => 'İade', 'url' => '/sayfa/iade', 'position' => 2]);
         }
 
+        $category = BlogCategory::query()->firstOrCreate(
+            ['slug' => 'rehber', 'channel_id' => $channelId],
+            ['name' => 'Rehber']
+        );
+
         BlogPost::query()->firstOrCreate(
-            ['slug' => 'boxer-rehberi'],
+            ['slug' => 'boxer-rehberi', 'channel_id' => $channelId],
             [
                 'title' => 'Doğru boxer nasıl seçilir?',
                 'excerpt' => 'Kumaş, beden ve konfor ipuçları.',
@@ -380,6 +421,7 @@ class CommerceBootstrap
                 'author' => 'Etic Ajans',
                 'published_at' => now(),
                 'is_published' => true,
+                'blog_category_id' => $category->id,
             ]
         );
 

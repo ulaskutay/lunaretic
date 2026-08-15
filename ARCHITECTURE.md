@@ -11,7 +11,7 @@ LUNAR CORE  →  ETIC COMMERCE CORE  →  CMS / SEO / INTEGRATIONS  →  ADMIN +
 1. Prefer Composer packages, service providers, events, policies, actions, and config — never a Lunar fork.
 2. All Etic code lives under `App\Etic`.
 3. Do not duplicate products, variants, prices, inventory, carts, orders, customers, or discounts.
-4. Design for a future second store (channel + store settings) without implementing tenancy.
+4. Design for multiple stores: domain → `etic_stores` → Lunar channel, with per-store theme and credentials on a shared database.
 5. Every feature must help launch the first boxer store or sell the platform to the next client.
 
 ## Namespaces
@@ -62,6 +62,8 @@ Single Filament panel from Lunar (`/lunar`). Etic Filament resources register on
 
 Versioned JSON under `/api/v1/*` for products, collections, cart, pages. Controllers call the same Etic/Lunar services as the Blade storefront.
 
-## Multi-store (later)
+## Multi-store
 
-MVP: `ETIC_STORE_HANDLE` + default Lunar channel + `etic_store_settings` keyed by channel. Later: domain → channel, theme per channel, isolated credentials. Not a full tenant database yet.
+Shared database. Host → `etic_stores` → Lunar `Channel`. Theme, CMS, redirects, tracking, shipping, and iyzico credentials are per store. Catalog visibility uses Lunar channelables. Not a separate tenant database and not SaaS billing.
+
+Admin: `/lunar` → Ayarlar → Mağazalar. Unknown hosts fall back to the default store.

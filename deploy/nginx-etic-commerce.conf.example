@@ -1,0 +1,36 @@
+server {
+    listen 80;
+    listen [::]:80;
+    # After SSL in aaPanel this file is usually replaced; keep server_name unique.
+    server_name YOUR-DOMAIN;
+
+    root /www/wwwroot/etic-commerce/public;
+    index index.php index.html;
+
+    access_log /www/wwwlogs/etic-commerce.log;
+    error_log /www/wwwlogs/etic-commerce.error.log;
+
+    client_max_body_size 64m;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_index index.php;
+        # aaPanel: change to the PHP version already used on this server (do not start php artisan serve).
+        include enable-php-83.conf;
+    }
+
+    location ~* /\.(env|git|htaccess) {
+        deny all;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}

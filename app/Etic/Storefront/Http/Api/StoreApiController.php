@@ -3,7 +3,9 @@
 namespace App\Etic\Storefront\Http\Api;
 
 use App\Etic\CMS\Models\Page;
+use App\Etic\Media\ProductImage;
 use App\Etic\Storefront\CartManager;
+use App\Etic\Storefront\CatalogFilters;
 use App\Etic\Storefront\CatalogQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +16,7 @@ class StoreApiController
 {
     public function products(Request $request, CatalogQuery $catalog): JsonResponse
     {
-        $paginator = $catalog->publishedProducts($request->string('q')->toString() ?: null);
+        $paginator = $catalog->publishedProducts(CatalogFilters::fromRequest($request));
 
         return response()->json([
             'data' => $paginator->through(fn ($product) => [
@@ -22,7 +24,7 @@ class StoreApiController
                 'name' => $product->translateAttribute('name'),
                 'slug' => $product->defaultUrl?->slug,
                 'status' => $product->status,
-                'image' => \App\Etic\Media\ProductImage::url($product, 'medium'),
+                'image' => ProductImage::url($product, 'medium'),
             ]),
         ]);
     }
