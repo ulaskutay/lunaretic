@@ -1,0 +1,38 @@
+<?php
+
+use App\Etic\SEO\Http\Controllers\RobotsController;
+use App\Etic\SEO\Http\Controllers\SitemapController;
+use App\Etic\Storefront\Http\Controllers\StorefrontController;
+use App\Etic\Storefront\Http\Middleware\BindStorefrontSession;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware(BindStorefrontSession::class)->group(function () {
+    Route::get('/', [StorefrontController::class, 'home'])->name('home');
+    Route::get('/koleksiyon', [StorefrontController::class, 'catalog'])->name('catalog');
+    Route::get('/koleksiyon/{slug}', [StorefrontController::class, 'collection'])->name('collection');
+    Route::get('/p/{slug}', [StorefrontController::class, 'product'])->name('product');
+    Route::get('/ara', [StorefrontController::class, 'search'])->name('search');
+    Route::get('/sayfa/{slug}', [StorefrontController::class, 'page'])->name('page');
+    Route::get('/blog', [StorefrontController::class, 'blogIndex'])->name('blog.index');
+    Route::get('/blog/{slug}', [StorefrontController::class, 'blogShow'])->name('blog.show');
+
+    Route::get('/sepet', [StorefrontController::class, 'cart'])->name('cart.show');
+    Route::post('/sepet', [StorefrontController::class, 'addToCart'])->name('cart.add');
+    Route::patch('/sepet', [StorefrontController::class, 'updateCart'])->name('cart.update');
+    Route::delete('/sepet', [StorefrontController::class, 'removeCart'])->name('cart.remove');
+    Route::post('/sepet/kupon', [StorefrontController::class, 'coupon'])->name('cart.coupon');
+
+    Route::get('/odeme', [StorefrontController::class, 'checkout'])->name('checkout.show');
+    Route::post('/odeme', [StorefrontController::class, 'placeOrder'])->name('checkout.place');
+    Route::get('/siparis/{order}', [StorefrontController::class, 'success'])->name('checkout.success');
+
+    Route::get('/giris', [StorefrontController::class, 'loginForm'])->name('login');
+    Route::post('/giris', [StorefrontController::class, 'login']);
+    Route::get('/kayit', [StorefrontController::class, 'registerForm'])->name('register');
+    Route::post('/kayit', [StorefrontController::class, 'register']);
+    Route::post('/cikis', [StorefrontController::class, 'logout'])->name('logout');
+    Route::get('/hesabim', [StorefrontController::class, 'account'])->middleware('auth')->name('account');
+});
+
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+Route::get('/robots.txt', RobotsController::class)->name('robots');
