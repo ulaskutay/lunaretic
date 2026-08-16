@@ -745,3 +745,34 @@ if (pdp) {
 window.addEventListener('scroll', syncViewportEffects, { passive: true });
 window.addEventListener('resize', syncViewportEffects, { passive: true });
 syncViewportEffects();
+
+function initPreventZoom() {
+    const blockGesture = (event) => {
+        event.preventDefault();
+    };
+
+    const blockPinch = (event) => {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    };
+
+    let lastTouchEnd = 0;
+    const blockDoubleTap = (event) => {
+        const now = Date.now();
+
+        if (now - lastTouchEnd <= 300) {
+            event.preventDefault();
+        }
+
+        lastTouchEnd = now;
+    };
+
+    document.addEventListener('gesturestart', blockGesture, { passive: false });
+    document.addEventListener('gesturechange', blockGesture, { passive: false });
+    document.addEventListener('gestureend', blockGesture, { passive: false });
+    document.addEventListener('touchmove', blockPinch, { passive: false });
+    document.addEventListener('touchend', blockDoubleTap, { passive: false });
+}
+
+initPreventZoom();

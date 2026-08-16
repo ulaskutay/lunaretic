@@ -1,6 +1,7 @@
 import { storeApi } from "@/lib/api";
 import { StoreProvider } from "@/lib/store";
 import { PageShell } from "@/components/page-shell";
+import { PreventZoom } from "@/components/prevent-zoom";
 import { Tracking } from "@/components/tracking";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  minimumScale: 1,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
@@ -107,6 +109,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ) : null}
       </head>
       <body>
+        <PreventZoom />
         <StoreProvider bootstrap={bootstrap}>
           <Tracking config={bootstrap.tracking} />
           <PageShell bootstrap={bootstrap}>{children}</PageShell>
