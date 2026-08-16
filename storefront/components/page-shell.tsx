@@ -11,12 +11,19 @@ export function PageShell({ bootstrap, children }: { bootstrap: Bootstrap; child
   const overlay = bootstrap.theme.handle === "atelier" || bootstrap.theme.header_style === "overlay";
   const flush = overlay && pathname === "/";
   const catalogPage = overlay && (pathname.startsWith("/koleksiyon") || pathname.startsWith("/ara"));
+  const productPage = overlay && pathname.startsWith("/urun");
+  const cartPage = pathname.startsWith("/sepet") || pathname.startsWith("/odeme");
+  const authPage = pathname.startsWith("/giris") || pathname.startsWith("/kayit") || pathname.startsWith("/hesabim");
   const wide = overlay || bootstrap.theme.container === "wide";
   const mainClass = flush
     ? "etic-main etic-main--flush min-h-[70vh]"
     : productPage
       ? "etic-main etic-main--pdp min-h-[70vh]"
-      : catalogPage
+      : cartPage
+        ? "etic-main etic-main--cart min-h-[70vh]"
+        : authPage
+          ? "etic-main etic-main--auth min-h-[70vh]"
+        : catalogPage
         ? `etic-main etic-main--catalog mx-auto min-h-[70vh] px-4 py-8 ${wide ? "max-w-7xl" : "max-w-6xl"}`
         : `etic-main mx-auto min-h-[70vh] px-4 py-8 ${wide ? "max-w-7xl" : "max-w-6xl"}`;
 

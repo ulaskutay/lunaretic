@@ -193,6 +193,73 @@ it('creates an order through offline checkout', function () {
         ->and(config('lunar.panel.order_count_statuses'))->toContain('payment-offline');
 });
 
+it('stores corporate billing details on the same delivery address', function () {
+    $variant = ProductVariant::query()->first();
+
+    $this->post(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ]);
+
+    $this->post(route('checkout.place'), [
+        'first_name' => 'Ali',
+        'last_name' => 'Yılmaz',
+        'email' => 'ali@example.com',
+        'phone' => '5551112233',
+        'line_one' => 'Test Cad. 1',
+        'city' => 'İstanbul',
+        'payment' => 'cash-in-hand',
+        'same_as_shipping' => '1',
+        'billing_is_corporate' => '1',
+        'billing_company_name' => 'Etic Ajans A.Ş.',
+        'billing_tax_office' => 'Kadıköy',
+        'billing_tax_identifier' => '1234567890',
+    ])->assertRedirect();
+
+    $order = Order::query()->latest('id')->first()?->load('billingAddress', 'shippingAddress');
+
+    expect($order?->billingAddress?->company_name)->toBe('Etic Ajans A.Ş.')
+        ->and($order?->billingAddress?->tax_identifier)->toBe('1234567890')
+        ->and(data_get($order?->billingAddress?->meta, 'tax_office'))->toBe('Kadıköy')
+        ->and($order?->shippingAddress?->company_name)->toBeNull();
+});
+
+it('stores a separate billing address when requested', function () {
+    $variant = ProductVariant::query()->first();
+
+    $this->post(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ]);
+
+    $this->post(route('checkout.place'), [
+        'first_name' => 'Ali',
+        'last_name' => 'Yılmaz',
+        'email' => 'ali@example.com',
+        'phone' => '5551112233',
+        'line_one' => 'Teslimat Cad. 9',
+        'city' => 'İstanbul',
+        'payment' => 'cash-in-hand',
+        'same_as_shipping' => '0',
+        'billing_first_name' => 'Ayşe',
+        'billing_last_name' => 'Demir',
+        'billing_line_one' => 'Fatura Mah. 12',
+        'billing_city' => 'Ankara',
+        'billing_state' => 'Çankaya',
+        'billing_is_corporate' => '1',
+        'billing_company_name' => 'Demir Ticaret Ltd.',
+        'billing_tax_office' => 'Çankaya',
+        'billing_tax_identifier' => '9876543210',
+    ])->assertRedirect();
+
+    $order = Order::query()->latest('id')->first()?->load('billingAddress', 'shippingAddress');
+
+    expect($order?->shippingAddress?->line_one)->toBe('Teslimat Cad. 9')
+        ->and($order?->billingAddress?->line_one)->toBe('Fatura Mah. 12')
+        ->and($order?->billingAddress?->city)->toBe('Ankara')
+        ->and($order?->billingAddress?->company_name)->toBe('Demir Ticaret Ltd.');
+});
+
 it('authorizes iyzico when a token is present', function () {
     $variant = ProductVariant::query()->first();
     $this->post(route('cart.add'), ['variant_id' => $variant->id, 'quantity' => 1]);
@@ -441,6 +508,36 @@ it('requires authentication for the account page', function () {
     $this->actingAs($user)->get(route('account'))->assertOk();
 });
 
+it('shows order details to the authenticated owner', function () {
+    $user = User::factory()->create();
+    $order = Order::factory()->create([
+        'user_id' => $user->id,
+        'status' => OrderStatusScenario::PAYMENT_OFFLINE,
+        'currency_code' => 'TRY',
+        'compare_currency_code' => 'TRY',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('account.order', $order))
+        ->assertOk()
+        ->assertSee((string) ($order->reference ?? $order->id), false)
+        ->assertSee('Sipariş detayı', false);
+});
+
+it('forbids viewing another users order detail', function () {
+    $owner = User::factory()->create();
+    $other = User::factory()->create();
+    $order = Order::factory()->create([
+        'user_id' => $owner->id,
+        'currency_code' => 'TRY',
+        'compare_currency_code' => 'TRY',
+    ]);
+
+    $this->actingAs($other)
+        ->get(route('account.order', $order))
+        ->assertForbidden();
+});
+
 it('renders the storefront catalog', function () {
     $this->get('/')->assertOk();
     $this->get('/koleksiyon')->assertOk();
@@ -510,7 +607,7 @@ it('uploads a png product image and generates a thumbnail', function () {
         ->and(str_ends_with(strtolower($media->file_name), '.png'))->toBeTrue()
         ->and($media->hasGeneratedConversion('small'))->toBeTrue()
         ->and(ProductImage::url($product->fresh(), 'large'))->toContain('/storage/')
-        ->and(ProductImage::url($product->fresh(), 'large'))->not->toContain('/conversions/')
+        ->and(ProductImage::url($product->fresh(), 'large'))->toContain('/conversions/')
         ->and(ProductImage::url($product->fresh(), 'small'))->toContain('/conversions/');
 
     @unlink($path);

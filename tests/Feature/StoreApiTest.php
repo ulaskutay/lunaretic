@@ -84,11 +84,11 @@ it('lists and shows products over the storefront api', function () {
     $this->getJson('/api/v1/products/klasik-boxer')
         ->assertOk()
         ->assertJsonPath('data.slug', 'klasik-boxer')
-        ->assertJsonStructure(['data' => ['variants', 'gallery', 'color_variants', 'collections'], 'schema', 'events']);
+        ->assertJsonStructure(['data' => ['variants', 'gallery', 'gallery_items', 'color_variants', 'collections'], 'schema', 'events']);
 });
 
 it('keeps a headless cart by token across requests', function () {
-    $variant = ProductVariant::query()->first();
+    $variant = ProductVariant::query()->with('product.defaultUrl')->first();
 
     $created = $this->postJson('/api/v1/cart', [
         'variant_id' => $variant->id,
@@ -101,7 +101,9 @@ it('keeps a headless cart by token across requests', function () {
     $this->withHeader('X-Cart-Token', $token)
         ->getJson('/api/v1/cart')
         ->assertOk()
-        ->assertJsonPath('data.lines.0.quantity', 2);
+        ->assertJsonPath('data.lines.0.quantity', 2)
+        ->assertJsonPath('data.lines.0.slug', $variant->product?->defaultUrl?->slug)
+        ->assertJsonStructure(['data' => ['free_shipping' => ['threshold', 'remaining', 'unlocked'], 'lines' => [['unit_price', 'values']]]]);
 
     $this->withHeader('X-Cart-Token', $token)
         ->postJson('/api/v1/cart/coupon', ['code' => 'BOXER10'])

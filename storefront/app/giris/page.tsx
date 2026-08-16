@@ -7,9 +7,10 @@ import { storeApi } from "@/lib/api";
 import { useStorefront } from "@/lib/store";
 
 export default function LoginPage() {
-  const { setAuthToken } = useStorefront();
+  const { bootstrap, setAuthToken } = useStorefront();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const storeName = bootstrap.store.name;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,17 +25,43 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      <h1 className="mb-6 text-2xl font-semibold">Giriş</h1>
-      {error ? <p className="mb-4 text-sm text-red-700">{error}</p> : null}
-      <form onSubmit={submit} className="max-w-sm space-y-3">
-        <input type="email" name="email" className="w-full rounded border px-3 py-2" placeholder="E-posta" required />
-        <input type="password" name="password" className="w-full rounded border px-3 py-2" placeholder="Şifre" required />
-        <button className="rounded-full bg-neutral-900 px-6 py-2 text-white">Giriş yap</button>
-      </form>
-      <p className="mt-4 text-sm">
-        <Link href="/kayit">Hesap oluştur</Link>
-      </p>
-    </>
+    <section className="etic-auth">
+      <div className="etic-auth__shell">
+        <aside className="etic-auth__hero" aria-hidden="true">
+          <p className="etic-auth__kicker">{storeName}</p>
+          <h1 className="etic-auth__title">Tekrar hoş geldiniz</h1>
+          <p className="etic-auth__lead">
+            Siparişlerinizi takip edin, adreslerinizi kaydedin ve koleksiyonları daha hızlı keşfedin.
+          </p>
+          <ul className="etic-auth__perks">
+            <li>Sipariş geçmişi ve durum takibi</li>
+            <li>Hızlı ödeme için kayıtlı bilgiler</li>
+            <li>Yeni koleksiyonlardan ilk siz haberdar olun</li>
+          </ul>
+        </aside>
+
+        <div className="etic-auth__card">
+          <div className="etic-auth__card-head">
+            <h2 className="etic-auth__card-title">Giriş yap</h2>
+            <p className="etic-auth__card-copy">Hesabınıza erişmek için bilgilerinizi girin.</p>
+          </div>
+          {error ? <p className="etic-auth__error">{error}</p> : null}
+          <form onSubmit={submit} className="etic-auth__form">
+            <label className="etic-auth__field">
+              <span className="etic-auth__label">E-posta</span>
+              <input type="email" name="email" className="etic-auth__input" autoComplete="email" required />
+            </label>
+            <label className="etic-auth__field">
+              <span className="etic-auth__label">Şifre</span>
+              <input type="password" name="password" className="etic-auth__input" autoComplete="current-password" required />
+            </label>
+            <button type="submit" className="etic-auth__submit">Giriş yap</button>
+          </form>
+          <p className="etic-auth__switch">
+            Henüz hesabınız yok mu? <Link href="/kayit">Kayıt olun</Link>
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }

@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { useStorefront } from "@/lib/store";
 import { ApiError } from "@/lib/api";
 
-export function CouponForm() {
+export function CouponForm({ editorial = false }: { editorial?: boolean }) {
   const { cart, applyCoupon, removeCoupon } = useStorefront();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +18,35 @@ export function CouponForm() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Kupon uygulanamadı.");
     }
+  }
+
+  if (editorial) {
+    return (
+      <div className="etic-cart__coupon">
+        {cart?.coupon_code ? (
+          <div className="etic-cart__coupon-applied">
+            <span>
+              Kupon <strong>{cart.coupon_code}</strong>
+            </span>
+            <button type="button" onClick={() => removeCoupon()}>
+              Kaldır
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="etic-cart__coupon-form">
+            <input
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="İndirim kodu"
+              autoComplete="off"
+              aria-label="İndirim kodu"
+            />
+            <button type="submit">Uygula</button>
+          </form>
+        )}
+        {error ? <p className="etic-cart__error">{error}</p> : null}
+      </div>
+    );
   }
 
   return (
@@ -45,33 +74,40 @@ export function CouponForm() {
   );
 }
 
-export function CartTotals({ showShipping = false }: { showShipping?: boolean }) {
+export function CartTotals({ showShipping = false, editorial = false }: { showShipping?: boolean; editorial?: boolean }) {
   const { cart } = useStorefront();
 
   if (!cart) {
     return null;
   }
 
+  const shippingFree = Boolean(cart.free_shipping?.unlocked);
+
   return (
-    <dl className="space-y-1 text-sm">
-      <div className="flex justify-between">
+    <dl className={editorial ? "etic-cart__totals" : "space-y-1 text-sm"}>
+      <div className={editorial ? undefined : "flex justify-between"}>
         <dt>Ara toplam</dt>
         <dd>{cart.subtotal?.formatted}</dd>
       </div>
       {cart.discount_total && cart.discount_total.value > 0 ? (
-        <div className="flex justify-between text-emerald-700">
+        <div className={editorial ? "is-discount" : "flex justify-between text-emerald-700"}>
           <dt>İndirim</dt>
           <dd>-{cart.discount_total.formatted}</dd>
         </div>
       ) : null}
-      {showShipping && cart.shipping_total ? (
+      {editorial ? (
+        <div>
+          <dt>Kargo</dt>
+          <dd className={shippingFree ? "is-free" : undefined}>{shippingFree ? "Ücretsiz" : "Ödeme adımında"}</dd>
+        </div>
+      ) : showShipping && cart.shipping_total ? (
         <div className="flex justify-between">
           <dt>Kargo</dt>
           <dd>{cart.shipping_total.formatted}</dd>
         </div>
       ) : null}
-      <div className="flex justify-between font-medium">
-        <dt>Toplam (KDV dahil)</dt>
+      <div className={editorial ? "is-total" : "flex justify-between font-medium"}>
+        <dt>{editorial ? "Genel toplam" : "Toplam"}</dt>
         <dd>{cart.total?.formatted}</dd>
       </div>
     </dl>

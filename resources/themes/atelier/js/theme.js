@@ -28,7 +28,7 @@ function syncParallax() {
     document.querySelectorAll('[data-etic-parallax]').forEach((element) => {
         const rect = element.getBoundingClientRect();
         const elementCenter = rect.top + (rect.height / 2);
-        const offset = Math.max(-42, Math.min(42, (viewportCenter - elementCenter) * 0.075));
+        const offset = Math.max(-68, Math.min(68, (viewportCenter - elementCenter) * 0.12));
 
         element.style.setProperty('--etic-parallax-y', `${offset.toFixed(2)}px`);
     });
@@ -143,6 +143,81 @@ document.addEventListener('click', (event) => {
     }
 });
 
+function closeMegaPanels() {
+    const header = headerRoot();
+
+    if (! header) {
+        return;
+    }
+
+    header.classList.remove('is-mega-open');
+    header.querySelectorAll('[data-mega-panel]').forEach((panel) => {
+        panel.classList.remove('is-open');
+        panel.hidden = true;
+    });
+}
+
+function initMegaMenu() {
+    const header = headerRoot();
+
+    if (! header) {
+        return;
+    }
+
+    const triggers = header.querySelectorAll('[data-mega-trigger]');
+    const panels = header.querySelectorAll('[data-mega-panel]');
+
+    if (! triggers.length || ! panels.length) {
+        return;
+    }
+
+    let closeTimer = null;
+
+    function isDesktop() {
+        return window.matchMedia('(min-width: 768px)').matches;
+    }
+
+    function openPanel(id) {
+        if (! isDesktop()) {
+            return;
+        }
+
+        window.clearTimeout(closeTimer);
+        header.classList.add('is-mega-open');
+
+        panels.forEach((panel) => {
+            const open = panel.dataset.megaPanel === id;
+            panel.classList.toggle('is-open', open);
+            panel.hidden = ! open;
+        });
+    }
+
+    function scheduleClose() {
+        if (! isDesktop()) {
+            return;
+        }
+
+        closeTimer = window.setTimeout(() => {
+            closeMegaPanels();
+        }, 140);
+    }
+
+    triggers.forEach((trigger) => {
+        const id = trigger.dataset.megaTrigger;
+        const panel = header.querySelector(`[data-mega-panel="${id}"]`);
+
+        trigger.addEventListener('mouseenter', () => openPanel(id));
+        trigger.addEventListener('focusin', () => openPanel(id));
+        trigger.addEventListener('mouseleave', scheduleClose);
+
+        panel?.addEventListener('mouseenter', () => {
+            window.clearTimeout(closeTimer);
+            openPanel(id);
+        });
+        panel?.addEventListener('mouseleave', scheduleClose);
+    });
+}
+
 function closeOverlays() {
     const header = headerRoot();
 
@@ -151,6 +226,7 @@ function closeOverlays() {
     }
 
     header.classList.remove('is-nav-open', 'is-search-open');
+    closeMegaPanels();
     setExpanded(header.querySelector('[data-etic-nav-toggle]'), false);
     setExpanded(header.querySelector('[data-etic-search-toggle]'), false);
 
@@ -233,6 +309,18 @@ document.addEventListener('keydown', (event) => {
         closeOverlays();
     }
 });
+
+initMegaMenu();
+
+window.addEventListener('resize', () => {
+    if (window.matchMedia('(min-width: 768px)').matches) {
+        const header = headerRoot();
+
+        if (header?.classList.contains('is-nav-open')) {
+            closeOverlays();
+        }
+    }
+}, { passive: true });
 
 function parsePdpVariants(root) {
     const script = root.querySelector('[data-pdp-variants]');

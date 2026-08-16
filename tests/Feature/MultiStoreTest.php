@@ -28,6 +28,15 @@ function secondStore(): Store
     ]);
 }
 
+it('uses app url for ip-only storefront links after a server move', function () {
+    config(['app.url' => 'http://95.217.160.252', 'etic.store.primary_url' => 'http://95.217.160.252']);
+
+    $store = Store::query()->where('handle', 'boxers')->firstOrFail();
+    $store->forceFill(['primary_domain' => '91.98.120.228'])->saveQuietly();
+
+    expect($store->fresh()->primaryUrl())->toBe('http://95.217.160.252');
+});
+
 it('resolves a store from the request host including www aliases', function () {
     $store = secondStore();
 

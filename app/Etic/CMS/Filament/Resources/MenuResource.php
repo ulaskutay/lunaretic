@@ -2,16 +2,20 @@
 
 namespace App\Etic\CMS\Filament\Resources;
 
+use App\Etic\CMS\Filament\MenuItemRepeater;
 use App\Etic\CMS\Filament\Resources\MenuResource\Pages;
 use App\Etic\CMS\Models\Menu;
 use App\Etic\Support\Filament\ChannelSelect;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class MenuResource extends Resource
 {
@@ -39,27 +43,36 @@ class MenuResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            ChannelSelect::make(),
-            TextInput::make('name')
-                ->label(__('etic.filament.menus.name'))
-                ->required(),
-            TextInput::make('handle')
-                ->label(__('etic.filament.menus.handle'))
-                ->required(),
-            Repeater::make('allItems')
-                ->label(__('etic.filament.menus.items'))
-                ->relationship()
+            Section::make(__('etic.filament.menus.details'))
+                ->description(__('etic.filament.menus.details_help'))
+                ->icon('heroicon-o-identification')
+                ->columns(2)
                 ->schema([
-                    TextInput::make('label')
-                        ->label(__('etic.filament.menus.item_label'))
-                        ->required(),
-                    TextInput::make('url')
-                        ->label(__('etic.filament.menus.item_url'))
-                        ->required(),
-                    TextInput::make('position')
-                        ->label(__('etic.filament.menus.item_position'))
-                        ->numeric()
-                        ->default(0),
+                    ChannelSelect::make(),
+                    TextInput::make('name')
+                        ->label(__('etic.filament.menus.name'))
+                        ->required()
+                        ->maxLength(191)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function (?string $state, Set $set, Get $get): void {
+                            if (filled($get('handle')) || ! filled($state)) {
+                                return;
+                            }
+
+                            $set('handle', Str::slug($state));
+                        }),
+                    TextInput::make('handle')
+                        ->label(__('etic.filament.menus.handle'))
+                        ->required()
+                        ->alphaDash()
+                        ->maxLength(80)
+                        ->columnSpan(1),
+                ]),
+            Section::make(__('etic.filament.menus.structure'))
+                ->description(__('etic.filament.menus.structure_help'))
+                ->icon('heroicon-o-squares-2x2')
+                ->schema([
+                    MenuItemRepeater::make(),
                 ]),
         ]);
     }
@@ -68,9 +81,16 @@ class MenuResource extends Resource
     {
         return $table->columns([
             TextColumn::make('name')
-                ->label(__('etic.filament.menus.name')),
+                ->label(__('etic.filament.menus.name'))
+                ->searchable()
+                ->sortable(),
             TextColumn::make('handle')
-                ->label(__('etic.filament.menus.handle')),
+                ->label(__('etic.filament.menus.handle'))
+                ->badge()
+                ->color('gray'),
+            TextColumn::make('all_items_count')
+                ->counts('allItems')
+                ->label(__('etic.filament.menus.item_count')),
         ])->recordActions([
             EditAction::make(),
         ]);

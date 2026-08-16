@@ -17,8 +17,24 @@ class MenuItem extends Model
         return $this->hasMany(self::class, 'parent_id')->orderBy('position');
     }
 
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
     public function menu(): BelongsTo
     {
         return $this->belongsTo(Menu::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (MenuItem $item): void {
+            if (filled($item->menu_id) || blank($item->parent_id)) {
+                return;
+            }
+
+            $item->menu_id = static::query()->whereKey($item->parent_id)->value('menu_id');
+        });
     }
 }

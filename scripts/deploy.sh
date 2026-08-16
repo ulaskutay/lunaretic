@@ -41,7 +41,7 @@ info "Maintenance (ignore if first deploy)"
 ssh "$REMOTE_HOST" "cd '$REMOTE_PATH' && test -f artisan && $PHP_BIN artisan down --retry=60 || true"
 
 info "rsync → $REMOTE_HOST:$REMOTE_PATH"
-rsync -az --delete \
+rsync -az --no-owner --no-group --delete \
   --include '.env.production.example' \
   --include 'storefront/.env.production.example' \
   --exclude '.env' \

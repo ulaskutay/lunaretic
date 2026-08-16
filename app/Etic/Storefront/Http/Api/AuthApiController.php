@@ -84,6 +84,8 @@ class AuthApiController
                     'reference' => $order->reference,
                     'status' => $order->status,
                     'status_label' => $order->status_label ?? $order->status,
+                    'total' => $order->total?->formatted(),
+                    'created_at' => $order->created_at?->toIso8601String(),
                 ])->values()->all(),
             ],
         ]);

@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Bootstrap } from "@/lib/types";
 import { useStorefront } from "@/lib/store";
+import { MegaMenuContent, megaTiles } from "@/components/mega-menu";
 
 function IconUser() {
   return (
@@ -49,6 +50,7 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
   const [scrolled, setScrolled] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [activeMega, setActiveMega] = useState<number | null>(null);
   const theme = bootstrap.theme;
   const overlay = theme.header_style === "overlay";
   const isHome = pathname === "/";
@@ -70,7 +72,22 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
   useEffect(() => {
     setNavOpen(false);
     setSearchOpen(false);
+    setActiveMega(null);
   }, [pathname]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onResize = () => {
+      if (mq.matches) {
+        setNavOpen(false);
+        setActiveMega(null);
+      }
+    };
+    mq.addEventListener("change", onResize);
+    return () => mq.removeEventListener("change", onResize);
+  }, []);
+
+  const tiles = megaTiles(theme);
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,6 +104,7 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
     scrolled ? "is-scrolled" : "",
     navOpen ? "is-nav-open" : "",
     searchOpen ? "is-search-open" : "",
+    activeMega !== null ? "is-mega-open" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -95,6 +113,7 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
     <>
       {theme.announcement ? <div className="etic-announcement">{theme.announcement}</div> : null}
       <header className={classes} data-etic-header>
+        <div className="etic-header__bg" aria-hidden="true" />
         <div className="etic-header__bar">
         <Link href="/" className="etic-header__logo">
           {theme.logo ? (
@@ -105,11 +124,27 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
           )}
         </Link>
         <nav className="etic-header__nav" aria-label="Ana menü">
-          {links.map((item) => (
-            <Link key={item.id} href={item.url}>
-              {item.label}
-            </Link>
-          ))}
+          {links.map((item) =>
+            item.children?.length ? (
+              <div
+                key={item.id}
+                className="etic-header__item"
+                data-mega-trigger={item.id}
+                onMouseEnter={() => setActiveMega(item.id)}
+                onMouseLeave={() => setActiveMega(null)}
+                onFocus={() => setActiveMega(item.id)}
+              >
+                <Link href={item.url}>{item.label}</Link>
+                <div className="etic-header__mobile-mega">
+                  <MegaMenuContent item={item} tiles={tiles} />
+                </div>
+              </div>
+            ) : (
+              <Link key={item.id} href={item.url}>
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
         <div className="etic-header__tools">
           <Link href={authToken ? "/hesabim" : "/giris"} className="etic-icon-btn" aria-label={authToken ? "Hesabım" : "Giriş"}>
@@ -157,6 +192,22 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
             <IconMenu />
           </button>
         </div>
+        </div>
+        <div className="etic-header__mega-layer" data-etic-mega-layer>
+          {links
+            .filter((item) => item.children?.length)
+            .map((item) => (
+              <div
+                key={item.id}
+                className={`etic-header__mega-panel${activeMega === item.id ? " is-open" : ""}`}
+                data-mega-panel={item.id}
+                hidden={activeMega !== item.id}
+                onMouseEnter={() => setActiveMega(item.id)}
+                onMouseLeave={() => setActiveMega(null)}
+              >
+                <MegaMenuContent item={item} tiles={tiles} />
+              </div>
+            ))}
         </div>
         {searchOpen ? (
           <div className="etic-search">

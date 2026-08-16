@@ -14,6 +14,9 @@
     $isHome = request()->routeIs('home');
     $isProduct = request()->routeIs('product');
     $isCatalog = request()->routeIs('catalog', 'collection', 'search');
+    $isCart = request()->routeIs('cart.show', 'checkout.show');
+    $isCheckout = request()->routeIs('checkout.show');
+    $isAuth = request()->routeIs('login', 'register', 'account', 'account.order', 'checkout.success');
     $overlay = theme_setting('header_style', 'overlay') !== 'stacked';
     $flush = $isHome && $overlay;
     $pdp = $isProduct && $overlay;
@@ -46,14 +49,16 @@
     @livewireStyles
     @include('theme::partials.tracking-head')
 </head>
-<body class="etic-body bg-canvas font-sans text-ink antialiased {{ $flush ? 'etic-body--flush' : '' }}">
+<body class="etic-body font-sans text-ink antialiased {{ $flush ? 'etic-body--flush' : '' }} {{ $isCheckout ? 'bg-canvas' : ($isCart ? 'bg-white' : 'bg-canvas') }}">
     <x-theme::header />
     <main @class([
         'etic-main min-h-[70vh]',
         'etic-main--flush' => $flush,
         'etic-main--pdp' => $pdp,
         'etic-main--catalog' => $isCatalog && ! $flush && ! $pdp,
-        'mx-auto px-4 py-10 '.theme()->containerClass() => ! $flush && ! $pdp,
+        'etic-main--cart' => $isCart,
+        'etic-main--auth' => $isAuth,
+        'mx-auto px-4 py-10 '.theme()->containerClass() => ! $flush && ! $pdp && ! $isCart && ! $isAuth,
     ])>
         @if(session('status'))
             <p class="mb-4 rounded bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>

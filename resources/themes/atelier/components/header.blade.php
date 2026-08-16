@@ -16,6 +16,7 @@
     class="etic-header {{ $overlay ? 'etic-header--overlay' : 'etic-header--solid' }} {{ $isHome ? 'etic-header--home' : '' }} {{ filled($announcement) ? 'etic-header--has-announcement' : '' }}"
     data-etic-header
 >
+    <div class="etic-header__bg" aria-hidden="true"></div>
     <div class="etic-header__bar">
         <a href="{{ route('home') }}" class="etic-header__logo">
             @if($logo)
@@ -27,7 +28,16 @@
 
         <nav class="etic-header__nav" data-etic-nav aria-label="Ana menü">
             @forelse($links as $item)
-                <a href="{{ $item->url }}">{{ $item->label }}</a>
+                @if($item->children->isNotEmpty())
+                    <div class="etic-header__item" data-mega-trigger="{{ $item->id }}">
+                        <a href="{{ $item->url }}">{{ $item->label }}</a>
+                        <div class="etic-header__mobile-mega">
+                            @include('etic.mega-menu-panel', ['item' => $item])
+                        </div>
+                    </div>
+                @else
+                    <a href="{{ $item->url }}">{{ $item->label }}</a>
+                @endif
             @empty
                 <a href="{{ route('catalog') }}">Ürünler</a>
                 <a href="{{ route('blog.index') }}">Blog</a>
@@ -56,6 +66,16 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             </button>
         </div>
+    </div>
+
+    <div class="etic-header__mega-layer" data-etic-mega-layer>
+        @foreach($links as $item)
+            @if($item->children->isNotEmpty())
+                <div class="etic-header__mega-panel" data-mega-panel="{{ $item->id }}" hidden>
+                    @include('etic.mega-menu-panel', ['item' => $item])
+                </div>
+            @endif
+        @endforeach
     </div>
 
     <div class="etic-search" data-etic-search hidden>

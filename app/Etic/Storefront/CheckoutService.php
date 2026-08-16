@@ -20,32 +20,23 @@ class CheckoutService
     {
         $country = Country::query()->where('iso2', $payload['country_iso2'] ?? 'TR')->firstOrFail();
 
-        $address = [
-            'first_name' => $payload['first_name'],
-            'last_name' => $payload['last_name'],
-            'line_one' => $payload['line_one'],
-            'line_two' => $payload['line_two'] ?? null,
-            'city' => $payload['city'],
-            'state' => $payload['state'] ?? null,
-            'postcode' => $payload['postcode'] ?? '34000',
-            'country_id' => $country->id,
-            'contact_phone' => $payload['phone'],
-            'contact_email' => $payload['email'],
-            'company_name' => $payload['company_name'] ?? null,
-        ];
+        $shipping = $this->shippingAddress($payload, $country);
+        $billing = CheckoutPayload::usesSameBilling($payload)
+            ? $shipping
+            : $this->billingAddress($payload, $country);
 
-        $cart->setShippingAddress($address);
-        $cart->setBillingAddress($payload['same_as_shipping'] ?? true ? $address : array_merge($address, [
-            'line_one' => $payload['billing_line_one'] ?? $address['line_one'],
-            'city' => $payload['billing_city'] ?? $address['city'],
-            'postcode' => $payload['billing_postcode'] ?? $address['postcode'],
-        ]));
+        $cart->setShippingAddress($shipping);
+        $cart->setBillingAddress($this->applyCorporateDetails(
+            CheckoutPayload::usesSameBilling($payload) ? [...$billing] : $billing,
+            $payload,
+        ));
 
         $cart->update([
             'meta' => array_merge((array) $cart->meta, [
                 'notes' => $payload['notes'] ?? null,
                 'email' => $payload['email'],
                 'phone' => $payload['phone'],
+                'billing_is_corporate' => CheckoutPayload::isCorporateBilling($payload),
             ]),
         ]);
 
@@ -101,6 +92,60 @@ class CheckoutService
         ], flash: true);
 
         return $order;
+    }
+
+    /** @return array<string, mixed> */
+    private function shippingAddress(array $payload, Country $country): array
+    {
+        return [
+            'first_name' => $payload['first_name'],
+            'last_name' => $payload['last_name'],
+            'line_one' => $payload['line_one'],
+            'line_two' => $payload['line_two'] ?? null,
+            'city' => $payload['city'],
+            'state' => $payload['state'] ?? null,
+            'postcode' => $payload['postcode'] ?? '34000',
+            'country_id' => $country->id,
+            'contact_phone' => $payload['phone'],
+            'contact_email' => $payload['email'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function billingAddress(array $payload, Country $country): array
+    {
+        return [
+            'first_name' => $payload['billing_first_name'],
+            'last_name' => $payload['billing_last_name'],
+            'line_one' => $payload['billing_line_one'],
+            'line_two' => $payload['billing_line_two'] ?? null,
+            'city' => $payload['billing_city'],
+            'state' => $payload['billing_state'] ?? null,
+            'postcode' => $payload['billing_postcode'] ?? '34000',
+            'country_id' => $country->id,
+            'contact_phone' => $payload['billing_phone'] ?? $payload['phone'],
+            'contact_email' => $payload['billing_email'] ?? $payload['email'],
+        ];
+    }
+
+    /** @param  array<string, mixed>  $address
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function applyCorporateDetails(array $address, array $payload): array
+    {
+        if (! CheckoutPayload::isCorporateBilling($payload)) {
+            return $address;
+        }
+
+        $address['company_name'] = $payload['billing_company_name'] ?? null;
+        $address['tax_identifier'] = $payload['billing_tax_identifier'] ?? null;
+        $address['meta'] = array_filter([
+            'tax_office' => $payload['billing_tax_office'] ?? null,
+            ...((array) ($address['meta'] ?? [])),
+        ]);
+
+        return $address;
     }
 
     /** @param  array<string, mixed>  $payload */

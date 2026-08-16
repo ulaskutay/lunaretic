@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { storeApi } from "@/lib/api";
@@ -30,28 +31,76 @@ export default function AccountPage() {
   }
 
   if (!user) {
-    return <p>Yükleniyor…</p>;
+    return <p className="etic-account__loading">Yükleniyor…</p>;
   }
 
+  const firstName = user.name.trim().split(/\s+/)[0] || "Merhaba";
+  const initial = user.name.trim().charAt(0).toUpperCase();
+
   return (
-    <>
-      <h1 className="mb-6 text-2xl font-semibold">Hesabım</h1>
-      <p className="text-sm text-neutral-600">{user.email}</p>
-      <button className="mt-2 text-sm underline" onClick={logout}>
-        Çıkış
-      </button>
-      <h2 className="mt-8 font-medium">Siparişler</h2>
-      <ul className="mt-3 space-y-2">
-        {orders.length ? (
-          orders.map((order) => (
-            <li key={order.id} className="rounded bg-white p-3">
-              #{order.reference ?? order.id} — {order.status_label}
-            </li>
-          ))
-        ) : (
-          <li>Henüz sipariş yok.</li>
-        )}
-      </ul>
-    </>
+    <section className="etic-account">
+      <header className="etic-account__head">
+        <p className="etic-account__kicker">Hesabım</p>
+        <h1>Merhaba, {firstName}</h1>
+        <p className="etic-account__lead">Siparişlerinizi görüntüleyin ve hesap bilgilerinizi yönetin.</p>
+      </header>
+
+      <div className="etic-account__layout">
+        <aside className="etic-account__profile">
+          <div className="etic-account__avatar" aria-hidden="true">{initial}</div>
+          <div className="etic-account__identity">
+            <p className="etic-account__name">{user.name}</p>
+            <p className="etic-account__email">{user.email}</p>
+          </div>
+          <nav className="etic-account__nav" aria-label="Hesap menüsü">
+            <span className="etic-account__nav-item is-active">Siparişlerim</span>
+            <Link href="/koleksiyon" className="etic-account__nav-item">Alışverişe devam et</Link>
+          </nav>
+          <div className="etic-account__logout">
+            <button type="button" onClick={logout}>Çıkış yap</button>
+          </div>
+        </aside>
+
+        <div className="etic-account__main">
+          <div className="etic-account__panel">
+            <div className="etic-account__panel-head">
+              <h2>Siparişlerim</h2>
+              <p>{orders.length} kayıt</p>
+            </div>
+
+            {orders.length === 0 ? (
+              <div className="etic-account__empty">
+                <p>Henüz bir siparişiniz yok.</p>
+                <Link href="/koleksiyon" className="etic-account__cta">Koleksiyonu keşfet</Link>
+              </div>
+            ) : (
+              <ul className="etic-account__orders">
+                {orders.map((order) => (
+                  <li key={order.id}>
+                    <Link href={`/hesabim/siparis/${order.id}`} className="etic-account__order">
+                      <div className="etic-account__order-copy">
+                        <p className="etic-account__order-ref">#{order.reference ?? order.id}</p>
+                        {order.created_at ? (
+                          <p className="etic-account__order-date">
+                            {new Date(order.created_at).toLocaleDateString("tr-TR", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="etic-account__order-status">{order.status_label}</span>
+                      {order.total ? <p className="etic-account__order-total">{order.total}</p> : null}
+                      <span className="etic-account__order-action" aria-hidden="true">Detay →</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

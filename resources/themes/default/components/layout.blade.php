@@ -12,6 +12,9 @@
 @php
     $logoText = theme()->logoText();
     $favicon = theme()->faviconHref();
+    $isCart = request()->routeIs('cart.show', 'checkout.show');
+    $isCheckout = request()->routeIs('checkout.show');
+    $isAuth = request()->routeIs('login', 'register', 'account', 'account.order', 'checkout.success');
 @endphp
 
 <!DOCTYPE html>
@@ -36,9 +39,14 @@
     @livewireStyles
     @include('theme::partials.tracking-head')
 </head>
-<body class="bg-canvas font-sans text-ink antialiased">
+<body class="font-sans text-ink antialiased {{ $isCheckout ? 'bg-canvas' : ($isCart ? 'bg-white' : 'bg-canvas') }}">
     <x-theme::header :logo-text="$logoText" />
-    <main class="etic-main mx-auto min-h-[70vh] {{ theme()->containerClass() }} px-4 py-8">
+    <main @class([
+        'etic-main mx-auto min-h-[70vh]',
+        'etic-main--cart px-0 py-8' => $isCart,
+        'etic-main--auth px-0 py-8' => $isAuth && ! $isCart,
+        theme()->containerClass().' px-4 py-8' => ! $isCart && ! $isAuth,
+    ])>
         @if(session('status'))
             <p class="mb-4 rounded bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>
         @endif

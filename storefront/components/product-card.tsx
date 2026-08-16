@@ -15,6 +15,7 @@ export function ProductCard({ product, className = "" }: { product: ProductCardT
               src={product.image}
               alt={product.name}
               decoding="async"
+              loading="lazy"
             />
           ) : null}
           {!product.in_stock ? <span className="etic-product__badge">Stokta yok</span> : null}
@@ -35,7 +36,7 @@ export function ProductCard({ product, className = "" }: { product: ProductCardT
               >
                 {item.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.image} alt={item.color || item.name || ""} />
+                  <img src={item.image} alt={item.color || item.name || ""} loading="lazy" decoding="async" />
                 ) : (
                   <span />
                 )}

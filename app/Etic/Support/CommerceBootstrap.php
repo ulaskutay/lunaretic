@@ -72,8 +72,20 @@ class CommerceBootstrap
             ]
         );
 
+        $appHost = Store::normalizeHost((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+        $updates = [];
+
         if (! $store->is_default || ! $store->is_active) {
-            $store->forceFill(['is_default' => true, 'is_active' => true])->save();
+            $updates['is_default'] = true;
+            $updates['is_active'] = true;
+        }
+
+        if ($appHost !== '' && filter_var($appHost, FILTER_VALIDATE_IP) && $store->primary_domain !== $appHost) {
+            $updates['primary_domain'] = $appHost;
+        }
+
+        if ($updates !== []) {
+            $store->forceFill($updates)->save();
         } else {
             $store->syncChannel();
         }

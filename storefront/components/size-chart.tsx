@@ -39,7 +39,7 @@ export function SizeChart() {
 
     function onClick(event: MouseEvent) {
       if (event.target === node) {
-        node.close();
+        node?.close();
       }
     }
 

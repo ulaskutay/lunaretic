@@ -83,7 +83,7 @@ class ActiveTheme
 
     public function menu(string $handle): ?Menu
     {
-        return Menu::query()->forStore()->where('handle', $handle)->with('items.children')->first();
+        return Menu::query()->forStore()->where('handle', $handle)->with('items.children.children')->first();
     }
 
     public function logoText(): string

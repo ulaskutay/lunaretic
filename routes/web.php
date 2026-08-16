@@ -35,6 +35,7 @@ Route::middleware(BindStorefrontSession::class)->group(function () {
     Route::post('/kayit', [StorefrontController::class, 'register']);
     Route::post('/cikis', [StorefrontController::class, 'logout'])->name('logout');
     Route::get('/hesabim', [StorefrontController::class, 'account'])->middleware('auth')->name('account');
+    Route::get('/hesabim/siparis/{order}', [StorefrontController::class, 'accountOrder'])->middleware('auth')->name('account.order');
 });
 
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');

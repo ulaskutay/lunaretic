@@ -1,21 +1,80 @@
 <x-storefront-layout>
-    <h1 class="mb-6 text-2xl font-semibold">{{ $mode === 'login' ? 'Giriş' : 'Kayıt' }}</h1>
-    @if($mode === 'login')
-        <form method="post" action="{{ route('login') }}" class="max-w-sm space-y-3">
-            @csrf
-            <input type="email" name="email" class="w-full rounded border px-3 py-2" placeholder="E-posta" required>
-            <input type="password" name="password" class="w-full rounded border px-3 py-2" placeholder="Şifre" required>
-            <button class="rounded-full bg-neutral-900 px-6 py-2 text-white">Giriş yap</button>
-        </form>
-        <p class="mt-4 text-sm"><a href="{{ route('register') }}">Hesap oluştur</a></p>
-    @else
-        <form method="post" action="{{ route('register') }}" class="max-w-sm space-y-3">
-            @csrf
-            <input name="name" class="w-full rounded border px-3 py-2" placeholder="Ad soyad" required>
-            <input type="email" name="email" class="w-full rounded border px-3 py-2" placeholder="E-posta" required>
-            <input type="password" name="password" class="w-full rounded border px-3 py-2" placeholder="Şifre" required>
-            <input type="password" name="password_confirmation" class="w-full rounded border px-3 py-2" placeholder="Şifre tekrar" required>
-            <button class="rounded-full bg-neutral-900 px-6 py-2 text-white">Kayıt ol</button>
-        </form>
-    @endif
+    @php
+        $isLogin = $mode === 'login';
+        $storeName = $eticStore->name();
+    @endphp
+
+    <section class="etic-auth">
+        <div class="etic-auth__shell">
+            <aside class="etic-auth__hero" aria-hidden="true">
+                <p class="etic-auth__kicker">{{ $storeName }}</p>
+                <h1 class="etic-auth__title">
+                    {{ $isLogin ? 'Tekrar hoş geldiniz' : 'Yeni bir hesap oluşturun' }}
+                </h1>
+                <p class="etic-auth__lead">
+                    {{ $isLogin
+                        ? 'Siparişlerinizi takip edin, adreslerinizi kaydedin ve koleksiyonları daha hızlı keşfedin.'
+                        : 'Birkaç adımda hesabınızı açın; sipariş geçmişiniz ve tercihleriniz tek yerde toplansın.' }}
+                </p>
+                <ul class="etic-auth__perks">
+                    <li>Sipariş geçmişi ve durum takibi</li>
+                    <li>Hızlı ödeme için kayıtlı bilgiler</li>
+                    <li>Yeni koleksiyonlardan ilk siz haberdar olun</li>
+                </ul>
+            </aside>
+
+            <div class="etic-auth__card">
+                <div class="etic-auth__card-head">
+                    <h2 class="etic-auth__card-title">{{ $isLogin ? 'Giriş yap' : 'Kayıt ol' }}</h2>
+                    <p class="etic-auth__card-copy">
+                        {{ $isLogin ? 'Hesabınıza erişmek için bilgilerinizi girin.' : 'Alışverişe başlamak için bilgilerinizi tamamlayın.' }}
+                    </p>
+                </div>
+
+                @if($isLogin)
+                    <form method="post" action="{{ route('login') }}" class="etic-auth__form">
+                        @csrf
+                        <label class="etic-auth__field">
+                            <span class="etic-auth__label">E-posta</span>
+                            <input type="email" name="email" value="{{ old('email') }}" class="etic-auth__input" autocomplete="email" required>
+                        </label>
+                        <label class="etic-auth__field">
+                            <span class="etic-auth__label">Şifre</span>
+                            <input type="password" name="password" class="etic-auth__input" autocomplete="current-password" required>
+                        </label>
+                        <button type="submit" class="etic-auth__submit">Giriş yap</button>
+                    </form>
+                    <p class="etic-auth__switch">
+                        Henüz hesabınız yok mu?
+                        <a href="{{ route('register') }}">Kayıt olun</a>
+                    </p>
+                @else
+                    <form method="post" action="{{ route('register') }}" class="etic-auth__form">
+                        @csrf
+                        <label class="etic-auth__field">
+                            <span class="etic-auth__label">Ad soyad</span>
+                            <input name="name" value="{{ old('name') }}" class="etic-auth__input" autocomplete="name" required>
+                        </label>
+                        <label class="etic-auth__field">
+                            <span class="etic-auth__label">E-posta</span>
+                            <input type="email" name="email" value="{{ old('email') }}" class="etic-auth__input" autocomplete="email" required>
+                        </label>
+                        <label class="etic-auth__field">
+                            <span class="etic-auth__label">Şifre</span>
+                            <input type="password" name="password" class="etic-auth__input" autocomplete="new-password" required>
+                        </label>
+                        <label class="etic-auth__field">
+                            <span class="etic-auth__label">Şifre tekrar</span>
+                            <input type="password" name="password_confirmation" class="etic-auth__input" autocomplete="new-password" required>
+                        </label>
+                        <button type="submit" class="etic-auth__submit">Hesap oluştur</button>
+                    </form>
+                    <p class="etic-auth__switch">
+                        Zaten hesabınız var mı?
+                        <a href="{{ route('login') }}">Giriş yapın</a>
+                    </p>
+                @endif
+            </div>
+        </div>
+    </section>
 </x-storefront-layout>

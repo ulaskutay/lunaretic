@@ -3,6 +3,7 @@
 namespace App\Etic\Storefront\Http\Api;
 
 use App\Etic\Storefront\CartManager;
+use App\Etic\Storefront\CheckoutPayload;
 use App\Etic\Storefront\CheckoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,21 +87,7 @@ class CartApiController
 
     public function place(Request $request, CheckoutService $checkout): JsonResponse
     {
-        $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:80'],
-            'last_name' => ['required', 'string', 'max:80'],
-            'email' => ['required', 'email'],
-            'phone' => ['required', 'string', 'max:30'],
-            'line_one' => ['required', 'string', 'max:191'],
-            'city' => ['required', 'string', 'max:80'],
-            'state' => ['nullable', 'string', 'max:80'],
-            'postcode' => ['nullable', 'string', 'max:20'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'shipping' => ['nullable', 'string'],
-            'payment' => ['required', 'in:cash-in-hand,iyzico'],
-            'payment_token' => ['nullable', 'string'],
-            'same_as_shipping' => ['nullable', 'boolean'],
-        ]);
+        $data = $request->validate(CheckoutPayload::rules());
 
         $order = $checkout->place($this->carts->current(), $data);
 

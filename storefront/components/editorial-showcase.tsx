@@ -40,7 +40,7 @@ export function EditorialShowcase({
       const rect = campaign.getBoundingClientRect();
       const viewportCenter = window.innerHeight / 2;
       const elementCenter = rect.top + rect.height / 2;
-      const offset = Math.max(-42, Math.min(42, (viewportCenter - elementCenter) * 0.075));
+      const offset = Math.max(-68, Math.min(68, (viewportCenter - elementCenter) * 0.12));
 
       campaign.style.setProperty("--etic-parallax-y", `${offset.toFixed(2)}px`);
       frame = null;

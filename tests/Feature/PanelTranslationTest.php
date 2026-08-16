@@ -10,3 +10,7 @@ it('translates the save variants button in turkish', function () {
     expect(__('lunarpanel::productoption.widgets.product-options.actions.save-variants.label'))
         ->toBe('Varyantları kaydet');
 });
+
+it('translates product options navigation in turkish', function () {
+    expect(__('lunarpanel::productoption.plural_label'))->toBe('Ürün Seçenekleri');
+});

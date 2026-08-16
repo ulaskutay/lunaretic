@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import type { Bootstrap } from "@/lib/types";
 import { useStorefront } from "@/lib/store";
 import { AtelierHeader } from "@/components/atelier-header";
+import { MegaPanel, megaTiles } from "@/components/mega-menu";
 
 export function Header({ bootstrap }: { bootstrap: Bootstrap }) {
   if (bootstrap.theme.handle === "atelier" || bootstrap.theme.header_style === "overlay") {
@@ -39,9 +40,9 @@ function DefaultHeader({ bootstrap }: { bootstrap: Bootstrap }) {
       {theme.announcement ? (
         <div className="bg-brand px-4 py-2 text-center text-xs text-brand-fg">{theme.announcement}</div>
       ) : null}
-      <header className="border-b bg-surface">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
-          <Link href="/" className="text-lg font-semibold tracking-tight">
+      <header className="relative border-b bg-surface">
+        <div className="mx-auto flex max-w-6xl items-stretch justify-between gap-4 px-4 py-4">
+          <Link href="/" className="self-center text-lg font-semibold tracking-tight">
             {theme.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={theme.logo} alt={theme.logo_text} className="h-8 w-auto" />
@@ -49,14 +50,21 @@ function DefaultHeader({ bootstrap }: { bootstrap: Bootstrap }) {
               theme.logo_text
             )}
           </Link>
-        <nav className="hidden items-center gap-6 text-sm md:flex">
-          {links.map((item) => (
-            <Link key={item.id} href={item.url}>
-              {item.label}
-            </Link>
-          ))}
+        <nav className="hidden items-stretch gap-6 text-sm md:flex">
+          {links.map((item) =>
+            item.children?.length ? (
+              <div key={item.id} className="etic-header__item group">
+                <Link href={item.url}>{item.label}</Link>
+                <MegaPanel item={item} tiles={megaTiles(theme)} />
+              </div>
+            ) : (
+              <Link key={item.id} href={item.url}>
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 self-center text-sm">
           <form onSubmit={search} className="hidden md:block">
             <input
               type="search"
@@ -116,7 +124,12 @@ export function Footer({ bootstrap }: { bootstrap: Bootstrap }) {
       <div className="etic-footer__inner">
         <div className="etic-footer__main">
           <Link href="/" className="etic-footer__logo">
-            {theme.logo_text}
+            {theme.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={theme.logo} alt={theme.logo_text} />
+            ) : (
+              theme.logo_text
+            )}
           </Link>
 
           <div className="etic-footer__columns">
@@ -129,11 +142,16 @@ export function Footer({ bootstrap }: { bootstrap: Bootstrap }) {
 
             <div className="etic-footer__column">
               <p className="etic-footer__label">Yardımcı bağlantılar</p>
-              {links.map((item) => (
+              {links.flatMap((item) => [
                 <Link key={item.id} href={item.url}>
                   {item.label}
-                </Link>
-              ))}
+                </Link>,
+                ...(item.children ?? []).map((child) => (
+                  <Link key={child.id} href={child.url}>
+                    {child.label}
+                  </Link>
+                )),
+              ])}
             </div>
 
             <div className="etic-footer__column etic-footer__about">

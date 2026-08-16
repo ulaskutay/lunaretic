@@ -170,9 +170,16 @@ export type Variant = {
   values: { id: number; name: string; option: string | null }[];
 };
 
+export type GalleryImage = {
+  src: string;
+  thumb: string;
+  zoom: string;
+};
+
 export type ProductDetail = ProductCard & {
   description: string | null;
   gallery: string[];
+  gallery_items?: GalleryImage[];
   collections?: CollectionCard[];
   variants: Variant[];
 };
@@ -211,8 +218,11 @@ export type CartLine = {
   sku: string;
   quantity: number;
   name: string | null;
+  slug: string | null;
   image: string | null;
+  unit_price: Money | null;
   total: Money | null;
+  values: { id: number; name: string; option: string | null }[];
 };
 
 export type Cart = {
@@ -226,6 +236,11 @@ export type Cart = {
   tax_total: Money | null;
   total: Money | null;
   currency: string;
+  free_shipping?: {
+    threshold: number | null;
+    remaining: number;
+    unlocked: boolean;
+  };
 };
 
 export type ShippingOption = {

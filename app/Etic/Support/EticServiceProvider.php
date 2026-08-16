@@ -123,6 +123,7 @@ class EticServiceProvider extends ServiceProvider
         app()->setFallbackLocale($locale);
 
         trans('lunarpanel::product.plural_label');
+        trans('lunarpanel::productoption.plural_label');
         trans('lunarpanel::auth.roles.admin.label');
         trans('lunarpanel::order.plural_label');
         trans('lunarpanel::relationmanagers.medias.title');
@@ -139,7 +140,8 @@ class EticServiceProvider extends ServiceProvider
             'relationmanagers.medias.actions.create.label' => 'Görseller ekle',
             'relationmanagers.medias.form.media.label' => 'Görseller',
             'relationmanagers.medias.form.primary.label' => 'Kapak görseli',
-            'productoption.widgets.product-options.actions.save-variants.label' => 'Varyantları kaydet',
+            'productoption.label' => 'Ürün Seçeneği',
+            'productoption.plural_label' => 'Ürün Seçenekleri',
         ], $locale, 'lunarpanel');
 
         Telemetry::optOut();

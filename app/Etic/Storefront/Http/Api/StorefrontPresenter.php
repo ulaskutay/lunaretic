@@ -9,6 +9,7 @@ use App\Etic\CMS\Models\MenuItem;
 use App\Etic\CMS\Models\Page;
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
 use App\Etic\Integrations\Marketing\TrackingSettings;
+use App\Etic\Integrations\Shipping\ShippingRates;
 use App\Etic\Media\ProductImage;
 use App\Etic\Orders\OrderStatusScenario;
 use App\Etic\Storefront\CartManager;
@@ -95,7 +96,7 @@ class StorefrontPresenter
             'name' => $product->translateAttribute('name'),
             'slug' => $product->defaultUrl?->slug,
             'status' => $product->status,
-            'image' => $this->absolute(ProductImage::url($product, 'large')),
+            'image' => $this->absolute(ProductImage::url($product, 'medium')),
             'price' => $this->money($price?->priceIncTax()),
             'compare_price' => $this->comparePrice($price),
             'brand' => $product->brand?->name,
@@ -109,15 +110,20 @@ class StorefrontPresenter
     /** @return array<string, mixed> */
     public function productDetail(Product $product, ?SupportCollection $colorVariants = null): array
     {
-        $gallery = ProductImage::galleryUrls($product)
-            ->map(fn (string $url) => $this->absolute($url))
+        $galleryItems = ProductImage::galleryItems($product)
+            ->map(fn (array $item) => [
+                'src' => $this->absolute($item['src']),
+                'thumb' => $this->absolute($item['thumb']),
+                'zoom' => $this->absolute($item['zoom']),
+            ])
             ->all();
 
         return [
             ...$this->productCard($product),
             'description' => $product->translateAttribute('description'),
             'image' => $this->absolute(ProductImage::url($product, 'large')),
-            'gallery' => $gallery,
+            'gallery' => array_values(array_filter(array_column($galleryItems, 'src'))),
+            'gallery_items' => $galleryItems,
             'collections' => $product->collections
                 ->map(fn (Collection $collection) => $this->collectionCard($collection))
                 ->filter(fn (array $item) => filled($item['slug']))
@@ -161,7 +167,16 @@ class StorefrontPresenter
     /** @return array<string, mixed> */
     public function cart(Cart $cart): array
     {
-        $cart->loadMissing(['lines.purchasable.product.media', 'lines.purchasable.product.thumbnail', 'currency']);
+        $cart->loadMissing([
+            'lines.purchasable.product.media',
+            'lines.purchasable.product.thumbnail',
+            'lines.purchasable.product.defaultUrl',
+            'lines.purchasable.values.option',
+            'currency',
+        ]);
+
+        $subtotal = (int) ($cart->subTotal?->value ?? 0);
+        $freeShipping = $this->freeShippingProgress($subtotal);
 
         return [
             'id' => $cart->id,
@@ -174,8 +189,17 @@ class StorefrontPresenter
                 'name' => $line->purchasable?->product
                     ? $line->purchasable->product->translateAttribute('name')
                     : $line->purchasable?->sku,
-                'image' => $this->absolute(ProductImage::url($line->purchasable, 'small')),
+                'slug' => $line->purchasable?->product?->defaultUrl?->slug,
+                'image' => $this->absolute(ProductImage::url($line->purchasable, 'medium')),
+                'unit_price' => $this->money($line->unitPriceInclTax ?? $line->unitPrice),
                 'total' => $this->money($line->total),
+                'values' => $line->purchasable?->values
+                    ? $line->purchasable->values->map(fn (ProductOptionValue $value) => [
+                        'id' => $value->id,
+                        'name' => $value->translate('name'),
+                        'option' => $value->option?->handle,
+                    ])->values()->all()
+                    : [],
             ])->values()->all(),
             'subtotal' => $this->money($cart->subTotal),
             'discount_total' => $this->money($cart->discountTotal),
@@ -183,6 +207,7 @@ class StorefrontPresenter
             'tax_total' => $this->money($cart->taxTotal),
             'total' => $this->money($cart->total),
             'currency' => $cart->currency?->code ?? 'TRY',
+            'free_shipping' => $freeShipping,
         ];
     }
 
@@ -326,7 +351,7 @@ class StorefrontPresenter
 
     private function menu(string $handle): array
     {
-        $menu = Menu::query()->forStore()->where('handle', $handle)->with('items.children')->first();
+        $menu = Menu::query()->forStore()->where('handle', $handle)->with('items.children.children')->first();
 
         return $menu ? $menu->items->map(fn (MenuItem $item) => $this->menuItem($item))->values()->all() : [];
     }
@@ -364,6 +389,31 @@ class StorefrontPresenter
         }
 
         return $this->money($price->comparePriceIncTax());
+    }
+
+    /** @return array{threshold: int|null, remaining: int, unlocked: bool} */
+    private function freeShippingProgress(int $subtotal): array
+    {
+        $rates = app(ShippingRates::class)->all();
+        $threshold = null;
+
+        foreach ($rates as $index => $rate) {
+            if ((int) ($rate['price'] ?? 0) !== 0) {
+                continue;
+            }
+
+            $previous = $rates[$index - 1] ?? null;
+            $threshold = is_array($previous) ? ($previous['max_subtotal'] ?? null) : 0;
+            break;
+        }
+
+        $target = is_int($threshold) ? $threshold : null;
+
+        return [
+            'threshold' => $target,
+            'remaining' => $target === null ? 0 : max(0, ($target + 1) - $subtotal),
+            'unlocked' => $target === null || $subtotal > $target,
+        ];
     }
 
     private function money(mixed $price): ?array

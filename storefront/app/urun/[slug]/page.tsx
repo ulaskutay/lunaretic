@@ -13,7 +13,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       storeApi.product(slug),
       storeApi.page("kargo").catch(() => null),
     ]);
-    const gallery = product.gallery.length ? product.gallery : product.image ? [product.image] : [];
+    const gallery = product.gallery_items?.length
+      ? product.gallery_items
+      : product.gallery.length
+        ? product.gallery
+        : product.image
+          ? [product.image]
+          : [];
     const collection = product.collections?.[0];
 
     return (

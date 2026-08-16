@@ -26,7 +26,7 @@
                 <script type="application/json" data-pdp-gallery-images>@json($galleryUrls)</script>
                 <div class="etic-pdp__stage" data-pdp-stage>
                     <button type="button" class="etic-pdp__inspect" data-pdp-open-lightbox aria-label="Görseli incele">
-                        <x-theme::product-image :model="$product" conversion="original" :priority="true" :alt="$product->translateAttribute('name')" data-pdp-image data-etic-cart-source />
+                        <x-theme::product-image :model="$product" conversion="large" :priority="true" :alt="$product->translateAttribute('name')" data-pdp-image data-etic-cart-source />
                     </button>
                     @if($gallery->count() > 1)
                         <button type="button" class="etic-pdp__nav is-prev" data-pdp-prev aria-label="Önceki görsel">‹</button>

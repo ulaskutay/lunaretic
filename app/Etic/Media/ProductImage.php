@@ -14,21 +14,35 @@ class ProductImage
     {
         $media = self::media($model);
 
-        if (! $media) {
-            return null;
-        }
+        return $media ? self::mediaUrl($media, $conversion) : null;
+    }
 
-        if ($conversion === 'small' && $media->hasGeneratedConversion('small')) {
-            return $media->getUrl('small');
+    public static function mediaUrl(Media $media, string $conversion = 'large'): string
+    {
+        foreach (self::conversionFallback($conversion) as $name) {
+            if ($media->hasGeneratedConversion($name)) {
+                return $media->getUrl($name);
+            }
         }
 
         return $media->getUrl();
     }
 
-    public static function galleryUrls(?object $model): Collection
+    public static function galleryUrls(?object $model, string $conversion = 'large'): Collection
     {
         return self::gallery($model)
-            ->map(fn (Media $media) => $media->getUrl())
+            ->map(fn (Media $media) => self::mediaUrl($media, $conversion))
+            ->values();
+    }
+
+    public static function galleryItems(?object $model): Collection
+    {
+        return self::gallery($model)
+            ->map(fn (Media $media) => [
+                'src' => self::mediaUrl($media, 'large'),
+                'thumb' => self::mediaUrl($media, 'small'),
+                'zoom' => self::mediaUrl($media, 'zoom'),
+            ])
             ->values();
     }
 
@@ -72,5 +86,17 @@ class ProductImage
         return self::gallery($model)->first(
             fn (Media $media) => (bool) $media->getCustomProperty('primary')
         ) ?? self::gallery($model)->first();
+    }
+
+    /** @return list<string> */
+    private static function conversionFallback(string $conversion): array
+    {
+        return match ($conversion) {
+            'original' => [],
+            'small' => ['small'],
+            'medium' => ['medium', 'large', 'small'],
+            'zoom' => ['zoom', 'large', 'medium'],
+            default => ['large', 'medium'],
+        };
     }
 }

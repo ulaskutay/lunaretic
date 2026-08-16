@@ -2,30 +2,44 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { GalleryImage } from "@/lib/types";
 
 function wrapIndex(index: number, total: number) {
   return (index + total) % total;
 }
 
-export function ProductGallery({ images, alt }: { images: string[]; alt: string }) {
+function normalizeImages(images: Array<string | GalleryImage>): GalleryImage[] {
+  return images.map((image) =>
+    typeof image === "string" ? { src: image, thumb: image, zoom: image } : image,
+  );
+}
+
+export function ProductGallery({
+  images,
+  alt,
+}: {
+  images: Array<string | GalleryImage>;
+  alt: string;
+}) {
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [origin, setOrigin] = useState("50% 50%");
   const swipe = useRef<{ x: number; y: number; moved: boolean } | null>(null);
-  const current = images[active] ?? images[0];
-  const multiple = images.length > 1;
+  const items = normalizeImages(images);
+  const current = items[active] ?? items[0];
+  const multiple = items.length > 1;
 
   const go = useCallback(
     (direction: number) => {
-      if (!images.length) {
+      if (!items.length) {
         return;
       }
-      setActive((index) => wrapIndex(index + direction, images.length));
+      setActive((index) => wrapIndex(index + direction, items.length));
       setZoomed(false);
       setOrigin("50% 50%");
     },
-    [images.length],
+    [items.length],
   );
 
   useEffect(() => {
@@ -125,7 +139,7 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
             onClick={() => setZoomed((value) => !value)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={current} alt={alt} style={{ transformOrigin: origin }} />
+            <img src={current.zoom} alt={alt} style={{ transformOrigin: origin }} />
           </div>
           {multiple ? (
             <button type="button" className="etic-pdp-lightbox__nav is-next" onClick={() => go(1)} aria-label="Sonraki görsel">
@@ -133,7 +147,7 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
             </button>
           ) : null}
           <p className="etic-pdp-lightbox__meta">
-            {multiple ? `${active + 1} / ${images.length}` : null}
+            {multiple ? `${active + 1} / ${items.length}` : null}
             <span>{zoomed ? "Küçültmek için tıklayın" : "Yakınlaştırmak için tıklayın"}</span>
           </p>
         </div>,
@@ -161,7 +175,7 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
           aria-label="Görseli incele"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={current} alt={alt} decoding="async" fetchPriority="high" data-etic-cart-source />
+          <img src={current.src} alt={alt} decoding="async" fetchPriority="high" data-etic-cart-source />
         </button>
         {multiple ? (
           <>
@@ -177,16 +191,16 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
       </div>
       {multiple ? (
         <div className="etic-pdp__thumbs">
-          {images.map((src, index) => (
+          {items.map((image, index) => (
             <button
-              key={src}
+              key={`${image.thumb}-${index}`}
               type="button"
               className={index === active ? "is-active" : undefined}
               onClick={() => setActive(index)}
               aria-label={`${alt} ${index + 1}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" />
+              <img src={image.thumb} alt="" loading="lazy" decoding="async" />
             </button>
           ))}
         </div>

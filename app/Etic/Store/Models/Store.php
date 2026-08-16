@@ -91,10 +91,23 @@ class Store extends Model
 
     public function primaryUrl(): string
     {
+        $fallback = rtrim((string) config('etic.store.primary_url', config('app.url')), '/');
         $domain = self::normalizeHost($this->primary_domain);
 
         if ($domain === '') {
-            return rtrim((string) config('etic.store.primary_url', config('app.url')), '/');
+            return $fallback !== '' ? $fallback : '/';
+        }
+
+        $fallbackHost = self::normalizeHost((string) parse_url($fallback, PHP_URL_HOST));
+
+        if (filter_var($domain, FILTER_VALIDATE_IP)) {
+            if ($fallbackHost !== '' && filter_var($fallbackHost, FILTER_VALIDATE_IP)) {
+                return $fallback;
+            }
+
+            $scheme = parse_url($fallback, PHP_URL_SCHEME) ?: 'http';
+
+            return $scheme.'://'.$domain;
         }
 
         $scheme = str_contains($domain, 'localhost') || str_ends_with($domain, '.test') ? 'http' : 'https';

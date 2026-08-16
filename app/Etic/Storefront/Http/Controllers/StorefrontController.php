@@ -14,6 +14,7 @@ use App\Etic\SEO\SchemaBuilder;
 use App\Etic\Storefront\CartManager;
 use App\Etic\Storefront\CatalogFilters;
 use App\Etic\Storefront\CatalogQuery;
+use App\Etic\Storefront\CheckoutPayload;
 use App\Etic\Storefront\CheckoutService;
 use App\Etic\Storefront\StorefrontPaths;
 use App\Etic\Theme\ActiveTheme;
@@ -59,8 +60,8 @@ class StorefrontController
             'shopLookItems' => $shopLookItems,
             'canonical' => $canonical->forPath('/'),
             'schemaJson' => $schema->encode($schema->organization(), $schema->website()),
-            'headerMenu' => Menu::query()->forStore()->where('handle', 'header')->with('items.children')->first(),
-            'footerMenu' => Menu::query()->forStore()->where('handle', 'footer')->with('items.children')->first(),
+            'headerMenu' => Menu::query()->forStore()->where('handle', 'header')->with('items.children.children')->first(),
+            'footerMenu' => Menu::query()->forStore()->where('handle', 'footer')->with('items.children.children')->first(),
         ]);
     }
 
@@ -265,8 +266,14 @@ class StorefrontController
 
     public function cart(CartManager $carts): View
     {
+        $cart = $carts->current()->calculate();
+        $cart->loadMissing([
+            'lines.purchasable.product.defaultUrl',
+            'lines.purchasable.values.option',
+        ]);
+
         return view('theme::pages.cart', [
-            'cart' => $carts->current()->calculate(),
+            'cart' => $cart,
         ]);
     }
 
@@ -353,6 +360,10 @@ class StorefrontController
     public function checkout(CartManager $carts, TrackingDispatcher $tracking): View
     {
         $cart = $carts->current()->calculate();
+        $cart->loadMissing([
+            'lines.purchasable.product.defaultUrl',
+            'lines.purchasable.values.option',
+        ]);
         $tracking->record('begin_checkout', [
             'value' => TrackingDispatcher::fromMinor((int) ($cart->total?->value ?? 0)),
             'currency' => $cart->currency?->code ?? 'TRY',
@@ -366,21 +377,7 @@ class StorefrontController
 
     public function placeOrder(Request $request, CartManager $carts, CheckoutService $checkout): RedirectResponse
     {
-        $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:80'],
-            'last_name' => ['required', 'string', 'max:80'],
-            'email' => ['required', 'email'],
-            'phone' => ['required', 'string', 'max:30'],
-            'line_one' => ['required', 'string', 'max:191'],
-            'city' => ['required', 'string', 'max:80'],
-            'state' => ['nullable', 'string', 'max:80'],
-            'postcode' => ['nullable', 'string', 'max:20'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-            'shipping' => ['nullable', 'string'],
-            'payment' => ['required', 'in:cash-in-hand,iyzico'],
-            'payment_token' => ['nullable', 'string'],
-            'same_as_shipping' => ['nullable', 'boolean'],
-        ]);
+        $data = $request->validate(CheckoutPayload::rules());
 
         try {
             $order = $checkout->place($carts->current(), $data);
@@ -393,6 +390,12 @@ class StorefrontController
 
     public function success(Order $order): View
     {
+        $order->loadMissing([
+            'productLines.purchasable.product',
+            'shippingAddress',
+            'billingAddress',
+        ]);
+
         return view('theme::pages.success', ['order' => $order]);
     }
 
@@ -462,5 +465,20 @@ class StorefrontController
         return view('theme::pages.account', [
             'orders' => $user?->orders()->latest()->get() ?? collect(),
         ]);
+    }
+
+    public function accountOrder(Order $order): View
+    {
+        $user = Auth::user();
+
+        abort_unless($user && $user->orders()->whereKey($order->getKey())->exists(), 403);
+
+        $order->loadMissing([
+            'productLines.purchasable.product',
+            'shippingAddress',
+            'billingAddress',
+        ]);
+
+        return view('theme::pages.account-order', ['order' => $order]);
     }
 }

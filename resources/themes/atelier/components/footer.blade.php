@@ -1,6 +1,8 @@
 @php
     $footerMenu = theme()->menu('footer');
     $links = $footerMenu?->items ?? collect();
+    $logoText = theme()->logoText();
+    $logo = theme()->logoUrl();
     $social = [
         'Instagram' => theme_setting('social_instagram'),
         'TikTok' => theme_setting('social_tiktok'),
@@ -20,7 +22,13 @@
 <footer class="etic-footer">
     <div class="etic-footer__inner">
         <div class="etic-footer__main">
-            <a href="{{ route('home') }}" class="etic-footer__logo">{{ theme()->logoText() }}</a>
+            <a href="{{ route('home') }}" class="etic-footer__logo">
+                @if($logo)
+                    <img src="{{ $logo }}" alt="{{ $logoText }}">
+                @else
+                    {{ $logoText }}
+                @endif
+            </a>
 
             <div class="etic-footer__columns">
                 <div class="etic-footer__column">
@@ -34,6 +42,9 @@
                     <p class="etic-footer__label">Yardımcı bağlantılar</p>
                     @forelse($links as $item)
                         <a href="{{ $item->url }}">{{ $item->label }}</a>
+                        @foreach($item->children as $child)
+                            <a href="{{ $child->url }}">{{ $child->label }}</a>
+                        @endforeach
                     @empty
                         <a href="{{ route('page', 'hakkimizda') }}">Hakkımızda</a>
                         <a href="{{ route('page', 'gizlilik') }}">Gizlilik</a>
@@ -62,11 +73,11 @@
                 </div>
             </div>
 
-            <p class="etic-footer__copyright">&copy; {{ date('Y') }} {{ theme()->logoText() }}</p>
+            <p class="etic-footer__copyright">&copy; {{ date('Y') }} {{ $logoText }}</p>
         </div>
 
         <aside class="etic-footer__aside">
-            @if($footerImage)
+            @if($footerImage && ! request()->routeIs('cart.show', 'checkout.show'))
                 <div class="etic-footer__media">
                     <img src="{{ $footerImage }}" alt="" loading="lazy" decoding="async">
                 </div>
