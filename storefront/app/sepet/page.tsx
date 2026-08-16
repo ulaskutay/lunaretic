@@ -48,25 +48,6 @@ function LockIcon() {
   );
 }
 
-function CheckoutSteps() {
-  return (
-    <ol className="etic-cart__steps" aria-label="Ödeme adımları">
-      <li className="is-active">
-        <span>1</span>
-        Alışveriş Sepeti
-      </li>
-      <li>
-        <span>2</span>
-        Teslimat
-      </li>
-      <li>
-        <span>3</span>
-        Ödeme
-      </li>
-    </ol>
-  );
-}
-
 function CartLineRow({ line }: { line: CartLine }) {
   const { updateLine, removeLine } = useStorefront();
   const [pending, setPending] = useState(false);
@@ -154,7 +135,6 @@ export default function CartPage() {
   if (!cart) {
     return (
       <section className="etic-cart is-loading" aria-busy="true">
-        <CheckoutSteps />
         <div className="etic-cart__skeleton" />
       </section>
     );
@@ -163,7 +143,6 @@ export default function CartPage() {
   if (cart.lines.length === 0) {
     return (
       <section className="etic-cart is-empty">
-        <CheckoutSteps />
         <div className="etic-cart__empty">
           <h1>Sepetiniz boş</h1>
           <p>Koleksiyondan bir ürün eklediğinizde burada görünecek.</p>
@@ -177,7 +156,6 @@ export default function CartPage() {
 
   return (
     <section className="etic-cart">
-      <CheckoutSteps />
       <div className="etic-cart__layout">
         <div className="etic-cart__list">
           <header className="etic-cart__list-head">

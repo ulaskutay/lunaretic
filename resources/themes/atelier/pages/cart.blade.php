@@ -17,11 +17,6 @@
     @endphp
 
     <section class="etic-cart">
-        <ol class="etic-cart__steps" aria-label="Ödeme adımları">
-            <li class="is-active"><span>1</span> Sepet</li>
-            <li><span>2</span> Ödeme</li>
-        </ol>
-
         @if($cart->lines->isEmpty())
             <div class="etic-cart__empty">
                 <h1>Sepetiniz boş</h1>

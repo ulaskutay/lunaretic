@@ -78,28 +78,6 @@ export default function CheckoutPage() {
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 pb-16 pt-2">
-      <div className="mb-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-        <ol className="flex list-none flex-wrap items-center justify-center gap-x-3 gap-y-2 p-0 text-sm text-muted">
-          <li>
-            <Link href="/sepet" className="inline-flex items-center gap-2 font-medium no-underline">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-neutral-200 text-xs font-bold">1</span>
-              Sepet
-            </Link>
-          </li>
-          <li className="hidden h-px w-8 bg-neutral-200 sm:block" aria-hidden="true" />
-          <li className="inline-flex items-center gap-2 font-medium">
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-neutral-200 text-xs font-bold">2</span>
-            Teslimat
-          </li>
-          <li className="hidden h-px w-8 bg-neutral-200 sm:block" aria-hidden="true" />
-          <li className="inline-flex items-center gap-2 font-medium text-brand">
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-xs font-bold text-brand-fg">3</span>
-            Ödeme
-          </li>
-        </ol>
-        <p className="text-xs font-medium text-muted">Güvenli ödeme</p>
-      </div>
-
       {error ? <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p> : null}
 
       <form onSubmit={submit} className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21.5rem]">

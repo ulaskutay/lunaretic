@@ -5159,7 +5159,11 @@ body:has(.etic-success) {
     color: var(--etic-account-accent);
   }
 
-  .etic-auth__submit:hover,
+  .etic-auth__submit:hover {
+    background: color-mix(in srgb, var(--etic-auth-accent) 88%, #000);
+    color: var(--etic-auth-accent-fg);
+  }
+
   .etic-account__cta:hover {
     background: color-mix(in srgb, var(--etic-account-accent) 88%, #000);
   }

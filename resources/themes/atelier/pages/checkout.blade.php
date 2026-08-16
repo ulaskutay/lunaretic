@@ -15,6 +15,14 @@
             </p>
         </div>
 
+        <form id="etic-checkout-coupon-apply" method="post" action="{{ route('cart.coupon') }}" hidden>
+            @csrf
+        </form>
+        <form id="etic-checkout-coupon-remove" method="post" action="{{ route('cart.coupon.remove') }}" hidden>
+            @csrf
+            @method('DELETE')
+        </form>
+
         <form method="post" action="{{ route('checkout.place') }}" class="etic-checkout__layout" data-checkout-form>
             @csrf
             <input type="hidden" name="payment" value="{{ $selectedPayment }}" data-payment-input>
@@ -197,7 +205,14 @@
                     @if((int) ($cart->taxTotal?->value ?? 0) > 0)
                         <p class="etic-checkout__tax">{{ __('etic.storefront.totals.tax_included_amount', ['amount' => $cart->taxTotal->formatted()]) }}</p>
                     @endif
-                    @include('theme::partials.coupon-form', ['cart' => $cart, 'embedded' => true])
+                    @include('theme::partials.coupon-form', [
+                        'cart' => $cart,
+                        'embedded' => true,
+                        'formTarget' => 'external',
+                        'applyFormId' => 'etic-checkout-coupon-apply',
+                        'removeFormId' => 'etic-checkout-coupon-remove',
+                        'inputId' => 'checkout-coupon-code',
+                    ])
                     <button type="submit" class="etic-checkout__cta">
                         <svg viewBox="0 0 20 20" aria-hidden="true">
                             <rect x="4.5" y="9" width="11" height="7.5" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.4" />
