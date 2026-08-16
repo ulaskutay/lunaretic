@@ -26,6 +26,11 @@ class TrackingDispatcher
     public function record(string $name, array $payload = [], bool $flash = false): TrackingEvent
     {
         $event = new TrackingEvent($name, $payload, serverContext: $this->serverContext());
+
+        if (request()->attributes->get('etic.theme_preview')) {
+            return $event;
+        }
+
         $this->events[] = $event;
 
         if ($flash) {

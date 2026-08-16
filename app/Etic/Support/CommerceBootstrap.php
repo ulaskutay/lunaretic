@@ -265,12 +265,17 @@ class CommerceBootstrap
             ['brand_id' => $brand->id, 'status' => 'published'],
             [
                 'product_type_id' => ProductType::query()->where('name', 'Boxer')->value('id'),
+                'model_code' => 'BX-KLASIK',
                 'attribute_data' => [
                     'name' => new TranslatedText(collect(['tr' => 'Klasik Boxer'])),
                     'description' => new TranslatedText(collect(['tr' => 'Pamuklu, nefes alan klasik boxer.'])),
                 ],
             ]
         );
+
+        if (blank($product->model_code)) {
+            $product->forceFill(['model_code' => 'BX-KLASIK'])->save();
+        }
 
         $product->urls()->firstOrCreate(
             ['slug' => 'klasik-boxer', 'language_id' => $language->id],
@@ -375,10 +380,22 @@ class CommerceBootstrap
                 ['slug' => $slug, 'channel_id' => $channelId],
                 [
                     'title' => $title,
-                    'content' => '<p>'.$title.' içeriği.</p>',
+                    'template' => $this->cmsPageTemplate($slug),
+                    'content' => $this->cmsPageContent($slug, $title),
                     'is_published' => true,
                 ]
             );
+
+            $placeholder = '<p>'.$title.' içeriği.</p>';
+
+            if ($page->content === $placeholder) {
+                $page->fill([
+                    'template' => $this->cmsPageTemplate($slug),
+                    'content' => $this->cmsPageContent($slug, $title),
+                ])->save();
+            } elseif (blank($page->template) || $page->template === 'page') {
+                $page->fill(['template' => $this->cmsPageTemplate($slug)])->save();
+            }
 
             $page->seo()->firstOrCreate([], [
                 'title' => $title.' | Etic Commerce',
@@ -429,9 +446,9 @@ class CommerceBootstrap
             [
                 'channel_handle' => config('etic.store.handle'),
                 'group' => 'theme',
-                'key' => 'primary_color',
+                'key' => 'values',
             ],
-            ['value' => '#111827']
+            ['value' => json_encode(['color_primary' => '#111827'], JSON_UNESCAPED_UNICODE)]
         );
     }
 
@@ -446,5 +463,79 @@ class CommerceBootstrap
                 'admin' => true,
             ]
         );
+    }
+
+    private function cmsPageTemplate(string $slug): string
+    {
+        return match ($slug) {
+            'hakkimizda' => 'story',
+            'iletisim' => 'contact',
+            'sss' => 'faq',
+            'gizlilik', 'kullanim-kosullari', 'kargo', 'iade' => 'legal',
+            default => 'page',
+        };
+    }
+
+    private function cmsPageContent(string $slug, string $title): string
+    {
+        return match ($slug) {
+            'hakkimizda' => <<<'HTML'
+<p>Zamansız tasarımlar, özenli detaylar ve günlük yaşama eşlik eden seçkiler üretiyoruz. Her parça, konforu sade bir estetikle bir araya getirmek için tasarlanır.</p>
+<h2>Nasıl çalışıyoruz</h2>
+<p>Kumaştan dikişe kadar her adımı yakından takip ederiz. Sezon trendlerinden çok, uzun süre giyilen, kolay eşleşen parçalara odaklanırız. Koleksiyonlarımız yavaş evrilir; böylece dolabınıza her sezon yeniden yer açmak zorunda kalmazsınız.</p>
+<h2>Kalite ve özen</h2>
+<p>Daha az, daha iyi. Dayanıklı kumaşlar, net kalıplar ve onarılabilir detaylarla ürünlerin ömrünü uzatmayı hedefleriz. Atölye sürecinde ölçü, doku ve renk tutarlılığı aynı titizlikle kontrol edilir.</p>
+HTML,
+            'iletisim' => <<<'HTML'
+<p>Sipariş, beden, kargo veya iade sorularınız için ekibimiz size yardımcı olur. Mesajınıza genellikle aynı iş günü içinde dönüş yaparız.</p>
+<h2>Çalışma saatleri</h2>
+<p>Hafta içi 09:00–18:00. Resmi tatillerde dönüşler bir sonraki iş gününe kayabilir. Acil sipariş güncellemeleri için WhatsApp hattımızı kullanabilirsiniz.</p>
+HTML,
+            'sss' => <<<'HTML'
+<h2>Siparişim ne zaman kargoya verilir?</h2>
+<p>Stoktaki ürünler genellikle 1 iş günü içinde kargoya teslim edilir. Yoğun dönemlerde bu süre 2 iş gününe uzayabilir. Kargo takip numarası e-posta ve hesabınıza düşer.</p>
+<h2>Hangi kargo firmasıyla gönderim yapıyorsunuz?</h2>
+<p>Siparişler yurt içi kargo ağımız üzerinden gönderilir. Teslimat süresi bölgeye göre 1–3 iş günüdür. 500 TL üzeri siparişlerde kargo ücretsizdir.</p>
+<h2>İade nasıl yapılır?</h2>
+<p>Teslimattan sonra 30 gün içinde, etiketli ve kullanılmamış ürünleri iade edebilirsiniz. İade sayfasındaki adımları izleyin; kargo kodu e-posta ile iletilir.</p>
+<h2>Bedenimi emin değilim, ne yapmalıyım?</h2>
+<p>Ürün sayfasındaki beden tablosunu kullanın. Hâlâ kararsızsanız müşteri desteğine yazın; kalıp ve kumaş önerisi paylaşırız. Uygun olmayan bedeni 30 gün içinde değiştirebilirsiniz.</p>
+<h2>Ödeme güvenli mi?</h2>
+<p>Kart ödemeleri 3D Secure ile alınır. Sipariş özeti ve fatura bilgileri hesabınızda saklanır. Kapıda ödeme seçeneği sepet tutarına göre değişiklik gösterebilir.</p>
+HTML,
+            'gizlilik' => <<<'HTML'
+<p>Bu gizlilik metni, sitemizi ziyaret ederken veya alışveriş yaparken toplanan kişisel verilerin nasıl işlendiğini açıklar.</p>
+<h2>Toplanan veriler</h2>
+<p>Hesap oluşturma, sipariş, bülten ve müşteri desteği süreçlerinde ad, e-posta, teslimat adresi, telefon ve ödeme işlemi için gerekli bilgiler toplanır. Site kullanımına dair çerezler, analiz ve reklam araçları da kullanılabilir.</p>
+<h2>Kullanım amacı</h2>
+<p>Veriler siparişi tamamlamak, müşteri desteği vermek, yasal yükümlülükleri yerine getirmek ve (izin verdiğinizde) kampanya ile kişiselleştirilmiş deneyim sunmak için işlenir.</p>
+<h2>Paylaşım ve saklama</h2>
+<p>Ödeme, kargo ve altyapı sağlayıcılarıyla yalnızca hizmetin gerektirdiği ölçüde paylaşım yapılır. Veriler, ilgili mevzuattaki süreler boyunca saklanır. Haklarınız için destek ekibimize yazabilirsiniz.</p>
+HTML,
+            'kullanim-kosullari' => <<<'HTML'
+<p>Siteyi kullanarak aşağıdaki satış ve kullanım koşullarını kabul etmiş olursunuz. Koşullar, siparişin verildiği andaki haliyle geçerlidir.</p>
+<h2>Sipariş ve fiyat</h2>
+<p>Ürün fiyatları KDV dahildir. Stok ve fiyat bilgisi sipariş onayına kadar güncellenebilir. Ödeme alındıktan sonra sipariş kesinleşir ve e-posta ile teyit edilir.</p>
+<h2>Teslimat</h2>
+<p>Teslimat, siparişte belirtilen adrese yapılır. Yanlış adres veya teslim alınmayan kargolarda oluşan ek ücretler müşteriye yansıtılabilir.</p>
+<h2>Fikri mülkiyet</h2>
+<p>Site içeriği, görseller ve marka unsurları izinsiz kopyalanamaz, ticari amaçla kullanılamaz.</p>
+HTML,
+            'kargo' => <<<'HTML'
+<p>Siparişiniz özenle hazırlanır ve anlaşmalı kargo ağımız üzerinden gönderilir. Teslimat süresi bölgeye göre 1–3 iş günüdür.</p>
+<h2>Kargo ücreti</h2>
+<p>Sepet tutarı 500 TL’nin altındaysa kargo ücreti ödeme adımında görünür. Bu eşiğin üzerindeki siparişlerde kargo ücretsizdir. Kampanya dönemlerinde eşik değişiklik gösterebilir.</p>
+<h2>Takip</h2>
+<p>Kargo takip numarası, sipariş kargoya verildiğinde e-posta ve hesabınıza iletilir. Teslimat sırasında evde bulunamazsanız kargo şubesinden teslim alabilirsiniz.</p>
+HTML,
+            'iade' => <<<'HTML'
+<p>Teslimattan sonra 14 gün içinde cayma, 30 gün içinde iade veya değişim hakkınız vardır. Ürünün etiketli, kullanılmamış ve orijinal ambalajında olması gerekir.</p>
+<h2>İade adımları</h2>
+<p>Hesabınız veya destek hattımız üzerinden iade talebi oluşturun. Size iletilen kargo koduyla ürünü ücretsiz gönderebilirsiniz. İade incelendikten sonra tutar, ödeme yönteminize iade edilir.</p>
+<h2>İade edilemeyen ürünler</h2>
+<p>Hijyen bandı açılmış iç giyim, kişiselleştirilmiş ürünler ve indirimli son satış ürünleri iade kapsamı dışında kalabilir. Detay için siparişinizden bize yazın.</p>
+HTML,
+            default => '<p>'.$title.' hakkında güncel bilgileri bu sayfada paylaşırız.</p>',
+        };
     }
 }

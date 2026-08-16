@@ -4,7 +4,9 @@ namespace App\Etic\Store\Filament\Resources;
 
 use App\Etic\Store\Filament\Resources\StoreResource\Pages;
 use App\Etic\Store\Models\Store;
+use App\Etic\Theme\ThemeRegistry;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -13,7 +15,6 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\File;
 
 class StoreResource extends Resource
 {
@@ -40,14 +41,6 @@ class StoreResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        $themes = collect(File::directories(resource_path('themes')))
-            ->mapWithKeys(function (string $path) {
-                $name = basename($path);
-
-                return [$name => $name];
-            })
-            ->all();
-
         return $schema->components([
             TextInput::make('name')
                 ->label(__('etic.filament.stores.name'))
@@ -66,11 +59,13 @@ class StoreResource extends Resource
             TagsInput::make('extra_domains')
                 ->label(__('etic.filament.stores.extra_domains'))
                 ->placeholder('www.example.com'),
-            TextInput::make('theme')
+            Select::make('theme')
                 ->label(__('etic.filament.stores.theme'))
-                ->datalist(array_keys($themes))
+                ->options(fn () => app(ThemeRegistry::class)->options())
+                ->helperText(__('etic.filament.stores.theme_help'))
                 ->default('default')
-                ->required(),
+                ->required()
+                ->native(false),
             TextInput::make('locale')
                 ->label(__('etic.filament.stores.locale'))
                 ->default('tr')
@@ -101,7 +96,8 @@ class StoreResource extends Resource
             TextColumn::make('primary_domain')
                 ->label(__('etic.filament.stores.primary_domain')),
             TextColumn::make('theme')
-                ->label(__('etic.filament.stores.theme')),
+                ->label(__('etic.filament.stores.theme'))
+                ->formatStateUsing(fn (?string $state): string => app(ThemeRegistry::class)->get((string) $state)?->name() ?? (string) $state),
             IconColumn::make('is_active')
                 ->label(__('etic.filament.stores.active'))
                 ->boolean(),

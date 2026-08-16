@@ -1,0 +1,511 @@
+{
+  "name": "Atelier",
+  "title": "Atölye (Atelier)",
+  "version": "1.0.0",
+  "author": "Etic Ajans",
+  "description": "Lüks moda ve butikler için tasarlanmış, geniş görseller ve zarif tipografi odaklı şık bir tema.",
+  "engine": "blade",
+  "assets": {
+    "css": "css/theme.css",
+    "js": "js/theme.js"
+  },
+  "settings": [
+    {
+      "label": "Marka",
+      "fields": [
+        {
+          "key": "logo_text",
+          "type": "text",
+          "label": "Logo yazısı",
+          "help": "Logo görseli yoksa bu metin kullanılır. Serif, büyük harf olarak gösterilir.",
+          "default": ""
+        },
+        {
+          "key": "logo",
+          "type": "image",
+          "label": "Logo",
+          "default": null
+        },
+        {
+          "key": "favicon",
+          "type": "image",
+          "label": "Favicon",
+          "default": null
+        },
+        {
+          "key": "announcement",
+          "type": "text",
+          "label": "Duyuru çubuğu",
+          "placeholder": "Örn: 500 TL üzeri kargo bedava!",
+          "help": "Boş bırakılırsa gizlenir.",
+          "default": ""
+        }
+      ]
+    },
+    {
+      "label": "Hero",
+      "enabled_key": "hero_enabled",
+      "fields": [
+        {
+          "key": "hero_kicker",
+          "type": "text",
+          "label": "Üst başlık",
+          "default": "Yeni koleksiyon"
+        },
+        {
+          "key": "hero_title",
+          "type": "textarea",
+          "label": "Ana başlık",
+          "help": "Satır kırmak için Enter kullanın.",
+          "default": "Rahatlık,\nSade Tasarım"
+        },
+        {
+          "key": "hero_cta_primary",
+          "type": "text",
+          "label": "Birincil buton",
+          "default": "Ürünleri gör"
+        },
+        {
+          "key": "hero_cta_primary_url",
+          "type": "text",
+          "label": "Birincil buton bağlantısı",
+          "default": "/koleksiyon"
+        },
+        {
+          "key": "hero_cta_secondary",
+          "type": "text",
+          "label": "İkincil bağlantı",
+          "default": "Keşfet"
+        },
+        {
+          "key": "hero_cta_secondary_url",
+          "type": "text",
+          "label": "İkincil bağlantı URL",
+          "default": "/sayfa/hakkimizda"
+        },
+        {
+          "key": "hero_image",
+          "type": "image",
+          "label": "Kahraman görseli",
+          "help": "Boşsa katalogdaki ilk ürün görseli kullanılır.",
+          "default": null
+        }
+      ]
+    },
+    {
+      "label": "Öne Çıkan Ürünler",
+      "enabled_key": "featured_enabled",
+      "fields": [
+        {
+          "key": "featured_title",
+          "type": "text",
+          "label": "Bölüm başlığı",
+          "help": "Örnek: Yeni gelenler — Koleksiyon. Büyük harf ve serif olarak gösterilir.",
+          "default": "Yeni gelenler — Koleksiyon"
+        }
+      ]
+    },
+    {
+      "label": "Editoryal kampanya",
+      "enabled_key": "editorial_enabled",
+      "fields": [
+        {
+          "key": "editorial_kicker",
+          "type": "text",
+          "label": "Üst başlık",
+          "default": "Sezon seçkisi"
+        },
+        {
+          "key": "editorial_title",
+          "type": "text",
+          "label": "Ana başlık",
+          "default": "Unutulmaz bir gece"
+        },
+        {
+          "key": "editorial_cta",
+          "type": "text",
+          "label": "Buton metni",
+          "default": "Koleksiyonu keşfet"
+        },
+        {
+          "key": "editorial_cta_url",
+          "type": "text",
+          "label": "Buton bağlantısı",
+          "default": "/koleksiyon"
+        },
+        {
+          "key": "editorial_image",
+          "type": "image",
+          "label": "Kampanya görseli",
+          "help": "Dikey veya kare, yüksek çözünürlüklü bir yaşam tarzı görseli kullanın.",
+          "default": null
+        }
+      ]
+    },
+    {
+      "label": "İkinci editoryal kampanya",
+      "enabled_key": "editorial_secondary_enabled",
+      "fields": [
+        {
+          "key": "editorial_secondary_kicker",
+          "type": "text",
+          "label": "Üst başlık",
+          "default": "Yeni sezon"
+        },
+        {
+          "key": "editorial_secondary_title",
+          "type": "text",
+          "label": "Ana başlık",
+          "default": "Özgür ruhlar için"
+        },
+        {
+          "key": "editorial_secondary_cta",
+          "type": "text",
+          "label": "Buton metni",
+          "default": "Seçkiyi keşfet"
+        },
+        {
+          "key": "editorial_secondary_cta_url",
+          "type": "text",
+          "label": "Buton bağlantısı",
+          "default": "/koleksiyon"
+        },
+        {
+          "key": "editorial_secondary_image",
+          "type": "image",
+          "label": "Kampanya görseli",
+          "help": "Dikey veya kare, yüksek çözünürlüklü bir yaşam tarzı görseli kullanın.",
+          "default": null
+        }
+      ]
+    },
+    {
+      "label": "Çok satanlar",
+      "enabled_key": "best_sellers_enabled",
+      "fields": [
+        {
+          "key": "best_sellers_title",
+          "type": "text",
+          "label": "Bölüm başlığı",
+          "default": "Çok satanlar"
+        },
+        {
+          "key": "best_sellers_cta",
+          "type": "text",
+          "label": "Tümünü gör bağlantısı",
+          "default": "Tümünü gör"
+        }
+      ]
+    },
+    {
+      "label": "Çift banner",
+      "enabled_key": "banners_enabled",
+      "fields": [
+        {
+          "key": "banner_left_image",
+          "type": "image",
+          "label": "Sol banner görseli",
+          "default": null
+        },
+        {
+          "key": "banner_left_title",
+          "type": "text",
+          "label": "Sol banner başlığı",
+          "default": "Zarif konfor"
+        },
+        {
+          "key": "banner_left_subtitle",
+          "type": "text",
+          "label": "Sol banner alt metni",
+          "default": ""
+        },
+        {
+          "key": "banner_left_cta",
+          "type": "text",
+          "label": "Sol banner butonu",
+          "default": "Keşfet"
+        },
+        {
+          "key": "banner_left_url",
+          "type": "text",
+          "label": "Sol banner bağlantısı",
+          "default": "/koleksiyon"
+        },
+        {
+          "key": "banner_right_image",
+          "type": "image",
+          "label": "Sağ banner görseli",
+          "default": null
+        },
+        {
+          "key": "banner_right_title",
+          "type": "text",
+          "label": "Sağ banner başlığı",
+          "default": "Sezonun dokusu"
+        },
+        {
+          "key": "banner_right_subtitle",
+          "type": "text",
+          "label": "Sağ banner alt metni",
+          "default": "Yeni sezon seçkisi"
+        },
+        {
+          "key": "banner_right_cta",
+          "type": "text",
+          "label": "Sağ banner butonu",
+          "default": "Şimdi keşfet"
+        },
+        {
+          "key": "banner_right_url",
+          "type": "text",
+          "label": "Sağ banner bağlantısı",
+          "default": "/koleksiyon"
+        }
+      ]
+    },
+    {
+      "label": "Shop the Look",
+      "enabled_key": "shop_look_enabled",
+      "fields": [
+        {
+          "key": "shop_look_kicker",
+          "type": "text",
+          "label": "Üst başlık",
+          "default": "Stili keşfet"
+        },
+        {
+          "key": "shop_look_title",
+          "type": "text",
+          "label": "Bölüm başlığı",
+          "default": "Görünümü tamamla"
+        },
+        {
+          "key": "shop_look_image",
+          "type": "image",
+          "label": "Ana görünüm görseli",
+          "help": "Ürünlerin birlikte göründüğü dikey veya yatay bir yaşam tarzı görseli yükleyin.",
+          "default": null
+        },
+        {
+          "key": "shop_look_1_product",
+          "type": "product",
+          "label": "1. nokta ürünü",
+          "default": null
+        },
+        {
+          "key": "shop_look_1_x",
+          "type": "number",
+          "label": "1. nokta yatay konumu (%)",
+          "min": 0,
+          "max": 100,
+          "default": 28
+        },
+        {
+          "key": "shop_look_1_y",
+          "type": "number",
+          "label": "1. nokta dikey konumu (%)",
+          "min": 0,
+          "max": 100,
+          "default": 34
+        },
+        {
+          "key": "shop_look_2_product",
+          "type": "product",
+          "label": "2. nokta ürünü",
+          "default": null
+        },
+        {
+          "key": "shop_look_2_x",
+          "type": "number",
+          "label": "2. nokta yatay konumu (%)",
+          "min": 0,
+          "max": 100,
+          "default": 61
+        },
+        {
+          "key": "shop_look_2_y",
+          "type": "number",
+          "label": "2. nokta dikey konumu (%)",
+          "min": 0,
+          "max": 100,
+          "default": 27
+        },
+        {
+          "key": "shop_look_3_product",
+          "type": "product",
+          "label": "3. nokta ürünü",
+          "default": null
+        },
+        {
+          "key": "shop_look_3_x",
+          "type": "number",
+          "label": "3. nokta yatay konumu (%)",
+          "min": 0,
+          "max": 100,
+          "default": 45
+        },
+        {
+          "key": "shop_look_3_y",
+          "type": "number",
+          "label": "3. nokta dikey konumu (%)",
+          "min": 0,
+          "max": 100,
+          "default": 62
+        },
+        {
+          "key": "shop_look_4_product",
+          "type": "product",
+          "label": "4. nokta ürünü",
+          "default": null
+        },
+        {
+          "key": "shop_look_4_x",
+          "type": "number",
+          "label": "4. nokta yatay konumu (%)",
+          "min": 0,
+          "max": 100,
+          "default": 72
+        },
+        {
+          "key": "shop_look_4_y",
+          "type": "number",
+          "label": "4. nokta dikey konumu (%)",
+          "min": 0,
+          "max": 100,
+          "default": 76
+        }
+      ]
+    },
+    {
+      "label": "Geri sayım",
+      "enabled_key": "countdown_enabled",
+      "fields": [
+        {
+          "key": "countdown_title",
+          "type": "text",
+          "label": "Başlık",
+          "default": "Sezon indirimi"
+        },
+        {
+          "key": "countdown_description",
+          "type": "text",
+          "label": "Açıklama",
+          "default": "Seçili ürünlerde sınırlı süreli fırsatları keşfedin."
+        },
+        {
+          "key": "countdown_ends_at",
+          "type": "datetime",
+          "label": "Bitiş tarihi",
+          "help": "Sayaç bu tarih ve saate kadar çalışır.",
+          "default": "2026-11-27 23:59:59"
+        }
+      ]
+    },
+    {
+      "label": "Renkler",
+      "fields": [
+        { "key": "color_background", "type": "color", "label": "Sayfa arka planı", "default": "#f4f1ec" },
+        { "key": "color_surface", "type": "color", "label": "Kart / yüzey", "default": "#ffffff" },
+        { "key": "color_text", "type": "color", "label": "Metin", "default": "#1a1a1a" },
+        { "key": "color_muted", "type": "color", "label": "Soluk metin", "default": "#6b6560" },
+        { "key": "color_primary", "type": "color", "label": "Birincil", "default": "#1a1a1a" },
+        { "key": "color_primary_text", "type": "color", "label": "Birincil üzerindeki yazı", "default": "#ffffff" },
+        { "key": "color_accent", "type": "color", "label": "Vurgu", "default": "#1a1a1a" }
+      ]
+    },
+    {
+      "label": "Tipografi ve yerleşim",
+      "fields": [
+        {
+          "key": "font_heading",
+          "type": "select",
+          "label": "Başlık fontu",
+          "default": "playfair",
+          "options": {
+            "playfair": "Playfair Display",
+            "montserrat": "Montserrat",
+            "display": "Instrument Sans",
+            "serif": "Georgia",
+            "system": "Sistem"
+          }
+        },
+        {
+          "key": "font_body",
+          "type": "select",
+          "label": "Gövde fontu",
+          "default": "montserrat",
+          "options": {
+            "montserrat": "Montserrat",
+            "playfair": "Playfair Display",
+            "display": "Instrument Sans",
+            "system": "Sistem",
+            "serif": "Georgia"
+          }
+        },
+        {
+          "key": "container",
+          "type": "select",
+          "label": "İçerik genişliği",
+          "default": "wide",
+          "options": {
+            "narrow": "Dar",
+            "default": "Standart",
+            "wide": "Geniş"
+          }
+        },
+        {
+          "key": "radius",
+          "type": "select",
+          "label": "Köşe yuvarlaklığı",
+          "default": "none",
+          "options": {
+            "none": "Keskin",
+            "sm": "Az",
+            "md": "Orta",
+            "xl": "Yumuşak"
+          }
+        },
+        {
+          "key": "header_style",
+          "type": "select",
+          "label": "Üst bar",
+          "default": "overlay",
+          "options": {
+            "overlay": "Görselin üzerinde, şeffaf",
+            "simple": "Logo solda",
+            "stacked": "Logo ortada"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Alt bilgi (Footer)",
+      "fields": [
+        { "key": "social_instagram", "type": "url", "label": "Instagram", "default": "" },
+        { "key": "social_tiktok", "type": "url", "label": "TikTok", "default": "" },
+        { "key": "social_facebook", "type": "url", "label": "Facebook", "default": "" },
+        { "key": "social_whatsapp", "type": "text", "label": "WhatsApp", "help": "90xxxxxxxxxx", "default": "" },
+        { "key": "footer_text", "type": "textarea", "label": "Alt bilgi metni", "default": "Zamansız tasarımlar, özenli detaylar ve günlük yaşama eşlik eden seçkiler." },
+        { "key": "footer_image", "type": "image", "label": "Footer görseli", "default": null },
+        {
+          "key": "newsletter_enabled",
+          "type": "toggle",
+          "label": "Bülteni göster",
+          "help": "Kapalıyken ana sayfa bülten/avantajlar bloğu ve alt bilgideki bülten formu gizlenir.",
+          "default": true
+        },
+        { "key": "newsletter_kicker", "type": "text", "label": "Bülten üst başlığı", "default": "Haftalık bültenimiz" },
+        { "key": "newsletter_title", "type": "text", "label": "Bülten başlığı", "default": "Detayları kaçırma" },
+        { "key": "newsletter_description", "type": "textarea", "label": "Bülten açıklaması", "default": "Yeni koleksiyonlar, özel teklifler ve ilham veren seçkiler e-posta kutunda." },
+        { "key": "newsletter_placeholder", "type": "text", "label": "E-posta alanı", "default": "e-posta adresiniz" },
+        { "key": "newsletter_cta", "type": "text", "label": "Bülten butonu", "default": "Katıl" },
+        { "key": "benefit_returns_title", "type": "text", "label": "İade başlığı", "default": "Kolay iade" },
+        { "key": "benefit_returns_description", "type": "text", "label": "İade açıklaması", "default": "Siparişinizi 30 gün içinde kolayca iade edin." },
+        { "key": "benefit_shipping_title", "type": "text", "label": "Gönderim başlığı", "default": "Hızlı gönderim" },
+        { "key": "benefit_shipping_description", "type": "text", "label": "Gönderim açıklaması", "default": "Siparişiniz özenle hazırlanır ve hızla kargoya verilir." },
+        { "key": "benefit_support_title", "type": "text", "label": "Destek başlığı", "default": "Müşteri desteği" },
+        { "key": "benefit_support_description", "type": "text", "label": "Destek açıklaması", "default": "Sorularınız için ekibimiz her zaman yanınızda." }
+      ]
+    }
+  ]
+}

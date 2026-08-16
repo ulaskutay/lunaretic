@@ -18,13 +18,18 @@ class ProductImage
             return null;
         }
 
-        foreach ([$conversion, 'medium', 'small'] as $name) {
-            if ($media->hasGeneratedConversion($name)) {
-                return $media->getUrl($name);
-            }
+        if ($conversion === 'small' && $media->hasGeneratedConversion('small')) {
+            return $media->getUrl('small');
         }
 
         return $media->getUrl();
+    }
+
+    public static function galleryUrls(?object $model): Collection
+    {
+        return self::gallery($model)
+            ->map(fn (Media $media) => $media->getUrl())
+            ->values();
     }
 
     public static function gallery(?object $model): Collection

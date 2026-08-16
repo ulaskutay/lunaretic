@@ -13,17 +13,17 @@ class EticMediaDefinitions extends StandardMediaDefinitions
     public function registerMediaConversions(HasMedia $model, ?Media $media = null): void
     {
         $model->addMediaConversion('small')
-            ->fit(Fit::Max, 300, 300)
+            ->fit(Fit::Max, 400, 400)
             ->keepOriginalImageFormat()
-            ->nonQueued();
+            ->deferred();
     }
 
     protected function registerCollectionConversions(MediaCollection $collection, HasMedia $model): void
     {
         $conversions = [
-            'zoom' => [500, 500],
-            'large' => [800, 800],
-            'medium' => [500, 500],
+            'zoom' => [2000, 2500],
+            'large' => [1400, 1750],
+            'medium' => [900, 1125],
         ];
 
         $collection->registerMediaConversions(function (Media $media) use ($model, $conversions) {
@@ -31,7 +31,7 @@ class EticMediaDefinitions extends StandardMediaDefinitions
                 $model->addMediaConversion($key)
                     ->fit(Fit::Max, $width, $height)
                     ->keepOriginalImageFormat()
-                    ->nonQueued();
+                    ->deferred();
             }
         });
     }

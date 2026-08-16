@@ -12,13 +12,19 @@ use App\Etic\SEO\CanonicalUrl;
 use App\Etic\SEO\Models\Redirect;
 use App\Etic\Support\CommerceBootstrap;
 use App\Models\User;
+use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\Http;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\Discounts;
+use Lunar\FieldTypes\TranslatedText;
+use Lunar\Models\Currency;
+use Lunar\Models\Language;
 use Lunar\Models\Order;
 use Lunar\Models\Product;
 use Lunar\Models\ProductOptionValue;
+use Lunar\Models\ProductType;
 use Lunar\Models\ProductVariant;
+use Lunar\Models\TaxClass;
 
 beforeEach(function () {
     app(CommerceBootstrap::class)->catalog();
@@ -57,6 +63,18 @@ it('adds a variant to the cart and calculates totals', function () {
     expect($cart)->not->toBeNull()
         ->and($cart->lines)->toHaveCount(1)
         ->and($cart->lines->first()->quantity)->toBe(2);
+});
+
+it('returns json when a product is added to the cart via ajax', function () {
+    $variant = ProductVariant::query()->first();
+
+    $this->postJson(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ])->assertOk()
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('count', 1)
+        ->assertJsonPath('message', 'Sepete eklendi.');
 });
 
 it('keeps vat inside the product price at checkout', function () {
@@ -232,12 +250,36 @@ it('allows cancelling an unpaid or offline order', function () {
 });
 
 it('serves canonical-friendly seo endpoints', function () {
-    $this->get('/sitemap.xml')->assertOk()->assertHeader('content-type', 'application/xml');
+    $this->get('/sitemap.xml')->assertOk()->assertHeader('content-type', 'application/xml')->assertSee('/urun/klasik-boxer', false);
     $this->get('/robots.txt')->assertOk()->assertSee('Sitemap:');
     $this->get('/sayfa/gizlilik')->assertOk();
 
     $canonical = app(CanonicalUrl::class)->forPath('sayfa/gizlilik');
     expect($canonical)->toEndWith('/sayfa/gizlilik');
+});
+
+it('renders modern layouts for static storefront pages', function () {
+    $this->get('/sayfa/hakkimizda')
+        ->assertOk()
+        ->assertSee('etic-static--story', false)
+        ->assertSee('Koleksiyonu keşfet')
+        ->assertSee('Nasıl çalışıyoruz');
+
+    $this->get('/sayfa/sss')
+        ->assertOk()
+        ->assertSee('etic-static--faq', false)
+        ->assertSee('Siparişim ne zaman kargoya verilir?');
+
+    $this->get('/sayfa/gizlilik')
+        ->assertOk()
+        ->assertSee('etic-static--legal', false)
+        ->assertSee('Yardım sayfaları')
+        ->assertSee('"@type":"WebPage"', false);
+
+    $this->get('/sayfa/iletisim')
+        ->assertOk()
+        ->assertSee('etic-static--contact', false)
+        ->assertSee('Müşteri desteği');
 });
 
 it('records tracking events from a central dispatcher', function () {
@@ -267,12 +309,12 @@ it('publishes blog posts and filters by category', function () {
 it('applies an active redirect', function () {
     Redirect::query()->create([
         'from_path' => 'eski-boxer',
-        'to_url' => '/p/klasik-boxer',
+        'to_url' => '/urun/klasik-boxer',
         'status_code' => 301,
         'is_active' => true,
     ]);
 
-    $this->get('/eski-boxer')->assertRedirect('/p/klasik-boxer');
+    $this->get('/eski-boxer')->assertRedirect('/urun/klasik-boxer');
 });
 
 it('serves a google merchant rss feed of variants', function () {
@@ -281,6 +323,7 @@ it('serves a google merchant rss feed of variants', function () {
         ->assertHeader('content-type', 'application/xml; charset=UTF-8')
         ->assertSee('g:id', false)
         ->assertSee('BX-SIYAH-S', false)
+        ->assertSee('/urun/klasik-boxer', false)
         ->assertSee('249.00 TRY', false);
 });
 
@@ -401,11 +444,54 @@ it('requires authentication for the account page', function () {
 it('renders the storefront catalog', function () {
     $this->get('/')->assertOk();
     $this->get('/koleksiyon')->assertOk();
-    $this->get('/p/klasik-boxer')->assertOk();
+    $this->get('/urun/klasik-boxer')->assertOk();
+    $this->get('/p/klasik-boxer')->assertRedirect('/urun/klasik-boxer');
     $this->get('/api/v1/products')->assertOk()->assertJsonStructure(['data']);
 });
 
+it('hides the variant picker when a product only has a default stock code', function () {
+    $language = Language::query()->where('code', 'tr')->firstOrFail();
+    $product = Product::query()->create([
+        'status' => 'published',
+        'product_type_id' => ProductType::query()->value('id'),
+        'attribute_data' => [
+            'name' => new TranslatedText(collect(['tr' => 'Tek Stoklu Ürün'])),
+        ],
+    ]);
+    $product->urls()->firstOrCreate(
+        ['slug' => 'tek-stoklu-urun', 'language_id' => $language->id],
+        ['default' => true]
+    );
+    $variant = $product->variants()->create([
+        'tax_class_id' => TaxClass::getDefault()->id,
+        'sku' => '20001',
+        'stock' => 5,
+        'purchasable' => 'in_stock',
+        'shippable' => true,
+        'unit_quantity' => 1,
+    ]);
+    $variant->prices()->create([
+        'price' => 200000,
+        'currency_id' => Currency::query()->where('code', 'TRY')->value('id'),
+        'min_quantity' => 1,
+    ]);
+
+    $this->get('/urun/tek-stoklu-urun')
+        ->assertOk()
+        ->assertSee('Tek Stoklu Ürün', false)
+        ->assertDontSee(__('etic.storefront.product.variant'))
+        ->assertDontSee('<select name="variant_id"', false)
+        ->assertSee('name="variant_id"', false);
+
+    $this->post(route('cart.add'), [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ])->assertRedirect(route('cart.show'));
+});
+
 it('uploads a png product image and generates a thumbnail', function () {
+    $this->withoutDefer();
+
     $product = Product::query()->first();
     $path = sys_get_temp_dir().'/etic-boxer-'.uniqid().'.png';
 
@@ -423,7 +509,34 @@ it('uploads a png product image and generates a thumbnail', function () {
     expect($media->mime_type)->toBe('image/png')
         ->and(str_ends_with(strtolower($media->file_name), '.png'))->toBeTrue()
         ->and($media->hasGeneratedConversion('small'))->toBeTrue()
+        ->and(ProductImage::url($product->fresh(), 'large'))->toContain('/storage/')
+        ->and(ProductImage::url($product->fresh(), 'large'))->not->toContain('/conversions/')
+        ->and(ProductImage::url($product->fresh(), 'small'))->toContain('/conversions/');
+
+    @unlink($path);
+});
+
+it('defers product image conversions so uploading does not wait for thumbnails', function () {
+    $product = Product::query()->first();
+    $path = sys_get_temp_dir().'/etic-boxer-'.uniqid().'.png';
+
+    $image = imagecreatetruecolor(80, 80);
+    imagesavealpha($image, true);
+    imagefill($image, 0, 0, imagecolorallocatealpha($image, 0, 0, 0, 127));
+    imagefilledrectangle($image, 10, 10, 70, 70, imagecolorallocate($image, 18, 18, 18));
+    imagepng($image, $path);
+
+    $media = $product->addMedia($path)
+        ->usingFileName('boxer.png')
+        ->withCustomProperties(['name' => 'Boxer', 'primary' => true])
+        ->toMediaCollection(config('lunar.media.collection'));
+
+    expect($media->hasGeneratedConversion('small'))->toBeFalse()
         ->and(ProductImage::url($product->fresh()))->toContain('/storage/');
+
+    app(DeferredCallbackCollection::class)->invoke();
+
+    expect($media->fresh()->hasGeneratedConversion('small'))->toBeTrue();
 
     @unlink($path);
 });

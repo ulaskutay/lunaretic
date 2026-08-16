@@ -2,9 +2,11 @@
 
 namespace App\Etic\Media;
 
+use App\Etic\Media\Jobs\AttachUploadedMediaJob;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\ImageColumn;
@@ -48,7 +50,7 @@ class MediaRelationManagerExtension extends RelationManagerExtension
                 ->panelLayout('grid')
                 ->imagePreviewHeight('140')
                 ->maxFiles(24)
-                ->maxParallelUploads(3)
+                ->maxParallelUploads(8)
                 ->maxSize($maxUploadKb)
                 ->acceptedFileTypes([
                     'image/jpeg',
@@ -110,19 +112,28 @@ class MediaRelationManagerExtension extends RelationManagerExtension
                 ->label(__('etic.filament.media.add'))
                 ->modalHeading(__('etic.filament.media.add'))
                 ->modalSubmitActionLabel(__('etic.filament.media.upload'))
+                ->successNotification(
+                    Notification::make()
+                        ->title(__('etic.filament.media.queued'))
+                        ->body(__('etic.filament.media.queued_body'))
+                        ->success()
+                )
                 ->modalWidth(Width::FourExtraLarge)
-                ->using(function (array $data) use ($manager): Media {
+                ->createAnother(false)
+                ->action(function (array $data) use ($manager): void {
                     $files = $data['media'] ?? [];
 
                     if (! is_array($files)) {
                         $files = [$files];
                     }
 
-                    return app(MediaLibraryUploader::class)->addMany(
-                        $manager->getOwnerRecord(),
-                        $files,
-                        $manager->mediaCollection ?? config('lunar.media.collection', 'images'),
+                    AttachUploadedMediaJob::dispatch(
+                        $manager->getOwnerRecord()::class,
+                        (int) $manager->getOwnerRecord()->getKey(),
+                        app(MediaLibraryUploader::class)->persistUploads($files),
+                        $manager->mediaCollection ?? (string) config('lunar.media.collection', 'images'),
                         (bool) ($data['custom_properties']['primary'] ?? false),
+                        auth('staff')->id(),
                     );
                 });
         }

@@ -27,11 +27,12 @@ Priority filter: *Does this help launch the first boxer store or sell the platfo
 ## P2 — Later
 
 - [x] Multi-store (domain → channel, theme, isolated credentials; shared DB)
+- [x] Next.js storefront (headless `/api/v1` + `storefront/`)
+- [x] Theme engine (`resources/themes/*`, tokens, Filament theme settings)
 - Multi-tenant SaaS billing
 - Additional payment (PayTR, Stripe)
 - Cargo APIs (Yurtiçi, MNG, Aras, Sürat, Hepsijet)
 - Marketplace, B2B, ERP, CRM
-- Next.js storefront
 - Visual page builder
 - AI features
 - Meilisearch / Algolia

@@ -85,8 +85,8 @@ it('hides products that are not enabled on the current channel', function () {
         ],
     ]);
 
-    $this->get('http://second.test/p/'.$slug)->assertOk();
-    $this->get('http://localhost/p/'.$slug)->assertNotFound();
+    $this->get('http://second.test/urun/'.$slug)->assertOk();
+    $this->get('http://localhost/urun/'.$slug)->assertNotFound();
     $this->get('http://localhost/koleksiyon')->assertOk()->assertDontSee('Klasik Boxer');
 });
 

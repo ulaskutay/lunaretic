@@ -10,6 +10,7 @@
                     {{ __('etic.storefront.filters.sort') }}
                     <select name="sort" class="mt-1 w-full rounded border px-2 py-1">
                         <option value="newest" @selected($filters->sort === 'newest')>{{ __('etic.storefront.filters.newest') }}</option>
+                        <option value="best_selling" @selected($filters->sort === 'best_selling')>{{ __('etic.storefront.filters.best_selling') }}</option>
                         <option value="price_asc" @selected($filters->sort === 'price_asc')>{{ __('etic.storefront.filters.price_asc') }}</option>
                         <option value="price_desc" @selected($filters->sort === 'price_desc')>{{ __('etic.storefront.filters.price_desc') }}</option>
                     </select>
@@ -55,28 +56,31 @@
                         <input type="number" name="max" min="0" step="1" value="{{ $filters->maxPrice !== null ? $filters->maxPrice / 100 : '' }}" class="mt-1 w-full rounded border px-2 py-1">
                     </label>
                 </div>
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" name="stok" value="1" @checked($filters->inStock)>
-                    {{ __('etic.storefront.filters.in_stock') }}
+                <label class="block">
+                    {{ __('etic.storefront.filters.availability') }}
+                    <select name="stok" class="mt-1 w-full rounded border px-2 py-1">
+                        <option value="">{{ __('etic.storefront.filters.all') }}</option>
+                        <option value="1" @selected($filters->inStock)>{{ __('etic.storefront.filters.in_stock') }}</option>
+                        <option value="yok" @selected($filters->outOfStock)>{{ __('etic.storefront.filters.out_of_stock') }}</option>
+                    </select>
                 </label>
-                <button class="w-full rounded-full bg-neutral-900 px-3 py-2 text-white">{{ __('etic.storefront.filters.apply') }}</button>
+                <button class="etic-btn w-full">{{ __('etic.storefront.filters.apply') }}</button>
                 <a href="{{ isset($currentCollection) ? route('collection', $currentCollection->defaultUrl?->slug) : route('catalog') }}" class="block text-center text-neutral-500">{{ __('etic.storefront.filters.clear') }}</a>
             </form>
         </aside>
         <div>
             <div class="mb-6">
-                <h1 class="text-2xl font-semibold">{{ isset($currentCollection) ? $currentCollection->translateAttribute('name') : ($search ?? 'Koleksiyon') }}</h1>
+                <h1 class="text-2xl font-semibold">
+                    {{ $filters->sort === 'best_selling'
+                        ? __('etic.storefront.filters.best_selling')
+                        : (isset($currentCollection) ? $currentCollection->translateAttribute('name') : ($search ?? 'Koleksiyon')) }}
+                </h1>
             </div>
             <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
                 @forelse($products as $product)
-                    <a href="{{ route('product', $product->defaultUrl?->slug ?? $product->id) }}" class="rounded-2xl bg-white p-3">
-                        <div class="mb-3 aspect-square overflow-hidden rounded-xl bg-neutral-100">
-                            <x-theme::product-image :model="$product" conversion="medium" :alt="$product->translateAttribute('name')" />
-                        </div>
-                        <h2 class="text-sm font-medium">{{ $product->translateAttribute('name') }}</h2>
-                    </a>
+                    <x-theme::product-card :product="$product" />
                 @empty
-                    <p class="col-span-full text-sm text-neutral-600">{{ __('etic.storefront.filters.empty') }}</p>
+                    <p class="col-span-full text-sm text-muted">{{ __('etic.storefront.filters.empty') }}</p>
                 @endforelse
             </div>
             <div class="mt-8">{{ $products->links() }}</div>

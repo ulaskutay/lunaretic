@@ -4,7 +4,7 @@
             <p class="text-xs uppercase tracking-[0.2em] text-neutral-500">Boxer koleksiyonu</p>
             <h1 class="mt-3 text-4xl font-semibold">Rahatlık, sade tasarım.</h1>
             <p class="mt-4 max-w-md text-neutral-600">İlk Etic Commerce mağazası. Renk ve beden varyantlarıyla tek üründen stoklu satış.</p>
-            <a href="{{ route('catalog') }}" class="mt-6 inline-block rounded-full bg-neutral-900 px-6 py-3 text-sm text-white">Alışverişe başla</a>
+            <a href="{{ route('catalog') }}" class="etic-btn mt-6">Alışverişe başla</a>
         </div>
         <div class="aspect-[4/5] overflow-hidden rounded-3xl bg-neutral-100">
             @if(isset($products) && $products->first())
@@ -12,15 +12,10 @@
             @endif
         </div>
     </section>
-    <h2 class="mb-4 text-xl font-medium">Öne çıkanlar</h2>
+    <h2 class="font-heading mb-4 text-xl font-medium">Öne çıkanlar</h2>
     <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
         @foreach($products as $product)
-            <a href="{{ route('product', $product->defaultUrl?->slug ?? $product->id) }}" class="rounded-2xl bg-white p-3 shadow-sm">
-                <div class="mb-3 aspect-square overflow-hidden rounded-xl bg-neutral-100">
-                    <x-theme::product-image :model="$product" conversion="medium" :alt="$product->translateAttribute('name')" />
-                </div>
-                <h3 class="text-sm font-medium">{{ $product->translateAttribute('name') }}</h3>
-            </a>
+            <x-theme::product-card :product="$product" />
         @endforeach
     </div>
 </x-storefront-layout>

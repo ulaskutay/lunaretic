@@ -2,11 +2,13 @@
 
 namespace App\Etic\CMS\Filament\Resources;
 
+use App\Etic\CMS\CmsPageLayout;
 use App\Etic\CMS\Filament\Resources\PageResource\Pages;
 use App\Etic\CMS\Models\Page;
 use App\Etic\Support\Filament\ChannelSelect;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -50,6 +52,18 @@ class PageResource extends Resource
                 ->label(__('etic.filament.pages.slug'))
                 ->required()
                 ->maxLength(191),
+            Select::make('template')
+                ->label(__('etic.filament.pages.template'))
+                ->options([
+                    CmsPageLayout::PAGE => __('etic.filament.pages.templates.page'),
+                    CmsPageLayout::STORY => __('etic.filament.pages.templates.story'),
+                    CmsPageLayout::LEGAL => __('etic.filament.pages.templates.legal'),
+                    CmsPageLayout::CONTACT => __('etic.filament.pages.templates.contact'),
+                    CmsPageLayout::FAQ => __('etic.filament.pages.templates.faq'),
+                ])
+                ->default(CmsPageLayout::PAGE)
+                ->native(false)
+                ->helperText(__('etic.filament.pages.template_help')),
             Toggle::make('is_published')
                 ->label(__('etic.filament.pages.published'))
                 ->default(true),
@@ -66,6 +80,9 @@ class PageResource extends Resource
                 ->searchable(),
             TextColumn::make('slug')
                 ->label(__('etic.filament.pages.slug')),
+            TextColumn::make('template')
+                ->label(__('etic.filament.pages.template'))
+                ->formatStateUsing(fn (?string $state): string => __('etic.filament.pages.templates.'.($state ?: 'page'))),
             IconColumn::make('is_published')
                 ->label(__('etic.filament.pages.published'))
                 ->boolean(),

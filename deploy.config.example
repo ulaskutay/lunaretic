@@ -1,6 +1,7 @@
-# Copy to deploy.local.env (gitignored) if you need overrides.
-REMOTE_HOST=eticajans
+# Copy to deploy.local.env (gitignored).
+REMOTE_HOST=root@95.217.160.252
 REMOTE_PATH=/www/wwwroot/etic-commerce
 REMOTE_OWNER=www
-SITE_DOMAIN=
+SERVER_IP=95.217.160.252
 PHP_BIN=php
+DEPLOY_STOREFRONT=1

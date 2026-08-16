@@ -35,15 +35,27 @@ npm run dev
 composer serve
 ```
 
+Next.js vitrin (ayrı süreç):
+
+```bash
+cd storefront
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+`http://localhost:3000` Laravel `/api/v1` kullanır. Laravel `.env` içinde `ETIC_STOREFRONT_ORIGINS=http://localhost:3000` olmalı.
+
 `composer serve` raises PHP upload limits (`upload_max_filesize` / `post_max_size`) so product images larger than 2 MB can be saved in `/lunar`. Plain `php artisan serve` uses PHP’s default 2 MB cap and shows “yüklenemedi”.
 
 ## Environment
 
 | Variable | Purpose |
 |----------|---------|
-| `APP_URL` | Primary site URL (canonical host; www or apex, pick one) |
+| `APP_URL` | Public URL. Production on IP: `http://x.x.x.x` |
 | `DB_*` | MySQL |
 | `ETIC_STORE_HANDLE` | Default Lunar channel / store handle (`boxers`) |
+| `ETIC_STOREFRONT_ORIGINS` | Next.js origin list for CORS (`http://localhost:3000`) |
 
 Mağazalar `/lunar` → Ayarlar → Mağazalar üzerinden eklenir. Host eşleşmezse varsayılan mağaza kullanılır. iyzico ve piksel kimlikleri mağaza bazında `etic_store_settings` içinde tutulur (`.env` yedek).
 | `ETIC_CURRENCY` | `TRY` |
@@ -70,6 +82,14 @@ Lunar table prefix defaults to `lunar_`. Do not change it without a migration pl
 4. SEO: yönlendirmeler
 5. Ayarlar: kargo ayarları, pazarlama ayarları (GA4 / GTM / Pixel / CAPI / Merchant feed URL)
 
+Toplu ürün yükleme ve görseller kuyrukta işlenir. `QUEUE_CONNECTION=database` iken ayrı bir süreçte:
+
+```bash
+php artisan queue:work --timeout=900
+```
+
+`composer serve` bunu başlatmaz. Üretimde `etic-queue` systemd servisi çalışır.
+
 ## Tests
 
 ```bash
@@ -78,26 +98,8 @@ php artisan test
 
 ## Deployment notes
 
-Production uses the existing web server (Nginx 80/443 + PHP-FPM). Do **not** run `php artisan serve` on the server; that would collide with other sites.
-
-Target directory: `/www/wwwroot/etic-commerce` (unique folder; other wwwroot sites stay untouched).
-
-Nginx document root must be `public/`, not the project root.
+See [DEPLOY.md](DEPLOY.md) — server IP only, Nginx + PHP-FPM, no aaPanel / no domain.
 
 ```bash
-# aaPanel: Website → Add site
-# Path: /www/wwwroot/etic-commerce/public
-# PHP 8.3+ with intl, pdo_mysql, bcmath, exif
-# Database name/user: etic_commerce (new DB, do not reuse another site)
-
 bash scripts/deploy.sh
 ```
-
-On first run, copy `.env.production.example` to `.env` on the server, set `APP_URL`, `APP_KEY`, and MySQL credentials, then run `bash scripts/server-setup.sh` again.
-
-Optional Nginx snippet: `deploy/nginx-etic-commerce.conf.example` (same 80/443, unique `server_name`).
-
-- `APP_ENV=production`, `APP_DEBUG=false`
-- Queue worker if jobs are enabled (`queue:work`); default production example uses the `database` driver without a new port
-- `php artisan sitemap:generate` (or scheduled) for `public/sitemap.xml`
-- Point DNS to a single canonical host; redirects handle the other

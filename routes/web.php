@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(BindStorefrontSession::class)->group(function () {
     Route::get('/', [StorefrontController::class, 'home'])->name('home');
     Route::get('/koleksiyon', [StorefrontController::class, 'catalog'])->name('catalog');
-    Route::get('/koleksiyon/{slug}', [StorefrontController::class, 'collection'])->name('collection');
-    Route::get('/p/{slug}', [StorefrontController::class, 'product'])->name('product');
+    Route::get('/koleksiyon/{slug}', [StorefrontController::class, 'collection'])->name('collection')->where('slug', '^(?!favicon\.ico$).+');
+    Route::get('/urun/{slug}', [StorefrontController::class, 'product'])->name('product')->where('slug', '^(?!favicon\.ico$).+');
+    Route::get('/p/{slug}', fn (string $slug) => redirect()->route('product', $slug, 301));
     Route::get('/ara', [StorefrontController::class, 'search'])->name('search');
     Route::get('/sayfa/{slug}', [StorefrontController::class, 'page'])->name('page');
     Route::get('/blog', [StorefrontController::class, 'blogIndex'])->name('blog.index');

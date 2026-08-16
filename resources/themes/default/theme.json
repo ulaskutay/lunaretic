@@ -1,0 +1,128 @@
+{
+  "name": "Default",
+  "title": "Default (Standart)",
+  "version": "1.0.0",
+  "author": "Etic Ajans",
+  "description": "Her türlü ürün için uygun, hızlı kurulum sağlayan temiz ve fonksiyonel standart vitrin tasarımı.",
+  "engine": "blade",
+  "assets": {
+    "css": "css/theme.css",
+    "js": "js/theme.js"
+  },
+  "settings": [
+    {
+      "label": "Marka",
+      "fields": [
+        {
+          "key": "logo_text",
+          "type": "text",
+          "label": "Logo yazısı",
+          "help": "Logo görseli yoksa bu metin kullanılır.",
+          "default": ""
+        },
+        {
+          "key": "logo",
+          "type": "image",
+          "label": "Logo",
+          "default": null
+        },
+        {
+          "key": "favicon",
+          "type": "image",
+          "label": "Favicon",
+          "default": null
+        },
+        {
+          "key": "announcement",
+          "type": "text",
+          "label": "Duyuru çubuğu",
+          "placeholder": "Örn: 500 TL üzeri kargo bedava!",
+          "help": "Boş bırakılırsa gizlenir.",
+          "default": ""
+        }
+      ]
+    },
+    {
+      "label": "Renkler",
+      "fields": [
+        { "key": "color_background", "type": "color", "label": "Sayfa arka planı", "default": "#fafafa" },
+        { "key": "color_surface", "type": "color", "label": "Kart / yüzey", "default": "#ffffff" },
+        { "key": "color_text", "type": "color", "label": "Metin", "default": "#171717" },
+        { "key": "color_muted", "type": "color", "label": "Soluk metin", "default": "#737373" },
+        { "key": "color_primary", "type": "color", "label": "Birincil", "default": "#111827" },
+        { "key": "color_primary_text", "type": "color", "label": "Birincil üzerindeki yazı", "default": "#ffffff" },
+        { "key": "color_accent", "type": "color", "label": "Vurgu", "default": "#111827" }
+      ]
+    },
+    {
+      "label": "Tipografi ve yerleşim",
+      "fields": [
+        {
+          "key": "font_heading",
+          "type": "select",
+          "label": "Başlık fontu",
+          "default": "display",
+          "options": {
+            "system": "Sistem",
+            "display": "Instrument Sans",
+            "serif": "Serif"
+          }
+        },
+        {
+          "key": "font_body",
+          "type": "select",
+          "label": "Gövde fontu",
+          "default": "system",
+          "options": {
+            "system": "Sistem",
+            "display": "Instrument Sans",
+            "serif": "Serif"
+          }
+        },
+        {
+          "key": "container",
+          "type": "select",
+          "label": "İçerik genişliği",
+          "default": "default",
+          "options": {
+            "narrow": "Dar",
+            "default": "Standart",
+            "wide": "Geniş"
+          }
+        },
+        {
+          "key": "radius",
+          "type": "select",
+          "label": "Köşe yuvarlaklığı",
+          "default": "md",
+          "options": {
+            "none": "Keskin",
+            "sm": "Az",
+            "md": "Orta",
+            "xl": "Yumuşak"
+          }
+        },
+        {
+          "key": "header_style",
+          "type": "select",
+          "label": "Üst bar",
+          "default": "simple",
+          "options": {
+            "simple": "Logo solda",
+            "stacked": "Logo ortada"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Alt bilgi (Footer)",
+      "fields": [
+        { "key": "social_instagram", "type": "url", "label": "Instagram", "default": "" },
+        { "key": "social_tiktok", "type": "url", "label": "TikTok", "default": "" },
+        { "key": "social_facebook", "type": "url", "label": "Facebook", "default": "" },
+        { "key": "social_whatsapp", "type": "text", "label": "WhatsApp", "help": "90xxxxxxxxxx", "default": "" },
+        { "key": "footer_text", "type": "textarea", "label": "Alt bilgi metni", "default": "" }
+      ]
+    }
+  ]
+}

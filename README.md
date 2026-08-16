@@ -7,7 +7,7 @@ Commercial, Lunar-based e-commerce platform for Etic Ajans. First production sto
 - PHP 8.3, Laravel 13, MySQL 8 (SQLite works locally)
 - Lunar 1.5 (Filament 4 admin at `/lunar`)
 - Lunar 1.5 (Filament 4 admin at `/lunar`)
-- Blade + Livewire storefront (`resources/themes/default`)
+- Blade + Livewire storefront (`resources/themes/{handle}`) and Next.js (`storefront/`)
 - Pest tests
 
 ## Documentation
@@ -17,6 +17,7 @@ Commercial, Lunar-based e-commerce platform for Etic Ajans. First production sto
 | [ARCHITECTURE_AUDIT.md](ARCHITECTURE_AUDIT.md) | Phase 0 audit |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Layers and extension rules |
 | [SETUP.md](SETUP.md) | Install, env, migrate, run |
+| [DEPLOY.md](DEPLOY.md) | Production (server IP, Nginx, no panel) |
 | [ROADMAP.md](ROADMAP.md) | P0 / P1 / P2 |
 | [INTEGRATIONS.md](INTEGRATIONS.md) | Payments, shipping, marketing |
 
@@ -33,7 +34,8 @@ php artisan storage:link
 composer serve
 ```
 
-- Storefront: `http://localhost:8000`
+- Storefront (Blade): `http://localhost:8000`
+- Storefront (Next): `http://localhost:3000`
 - Admin: `http://localhost:8000/lunar`
 
 ## Rules

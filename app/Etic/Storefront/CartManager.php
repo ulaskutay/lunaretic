@@ -3,6 +3,7 @@
 namespace App\Etic\Storefront;
 
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
+use Illuminate\Support\Str;
 use Lunar\Base\Validation\CouponValidatorInterface;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\Discounts;
@@ -12,11 +13,33 @@ use RuntimeException;
 
 class CartManager
 {
+    public const TOKEN_HEADER = 'X-Cart-Token';
+
     public function __construct(private TrackingDispatcher $tracking) {}
 
     public function current(): Cart
     {
-        return CartSession::manager();
+        $token = $this->incomingToken();
+
+        if ($token && $existing = $this->findByToken($token)) {
+            CartSession::use($existing);
+
+            return $existing->calculate();
+        }
+
+        $cart = CartSession::manager();
+
+        $this->ensureToken($cart, $token);
+
+        return $cart;
+    }
+
+    public function token(?Cart $cart = null): ?string
+    {
+        $cart ??= $this->current();
+        $meta = $this->meta($cart);
+
+        return isset($meta['storefront_token']) ? (string) $meta['storefront_token'] : null;
     }
 
     public function add(int $variantId, int $quantity = 1): Cart
@@ -105,5 +128,38 @@ class CartManager
     private function couponValidator(): CouponValidatorInterface
     {
         return app(config('lunar.discounts.coupon_validator'));
+    }
+
+    private function incomingToken(): ?string
+    {
+        $header = request()?->header(self::TOKEN_HEADER);
+
+        return filled($header) ? (string) $header : null;
+    }
+
+    private function findByToken(string $token): ?Cart
+    {
+        return Cart::query()
+            ->where('meta->storefront_token', $token)
+            ->latest('id')
+            ->first();
+    }
+
+    private function ensureToken(Cart $cart, ?string $preferred = null): void
+    {
+        $meta = $this->meta($cart);
+
+        if (filled($meta['storefront_token'] ?? null)) {
+            return;
+        }
+
+        $meta['storefront_token'] = $preferred ?: (string) Str::uuid();
+        $cart->update(['meta' => $meta]);
+    }
+
+    /** @return array<string, mixed> */
+    private function meta(Cart $cart): array
+    {
+        return json_decode(json_encode($cart->meta ?? []), true) ?: [];
     }
 }

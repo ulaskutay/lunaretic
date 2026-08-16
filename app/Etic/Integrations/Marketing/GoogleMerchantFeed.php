@@ -3,6 +3,7 @@
 namespace App\Etic\Integrations\Marketing;
 
 use App\Etic\Media\ProductImage;
+use App\Etic\Storefront\StorefrontPaths;
 use App\Etic\Support\StoreContext;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
@@ -24,7 +25,7 @@ class GoogleMerchantFeed
             ->with(['variants.prices', 'variants.values', 'brand', 'defaultUrl', 'media', 'thumbnail'])
             ->each(function (Product $product) use (&$items, $base, $currency) {
                 $slug = $product->defaultUrl?->slug;
-                $link = $slug ? $base.'/p/'.$slug : $base;
+                $link = $slug ? $base.StorefrontPaths::product($slug) : $base;
                 $title = $product->translateAttribute('name') ?: 'Ürün';
                 $description = trim(html_entity_decode(strip_tags((string) $product->translateAttribute('description')))) ?: $title;
                 $image = ProductImage::url($product, 'large');

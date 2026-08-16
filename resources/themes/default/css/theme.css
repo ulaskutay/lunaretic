@@ -1,0 +1,443 @@
+.etic-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: var(--etic-color-primary, #111827);
+    color: var(--etic-color-primary-text, #ffffff);
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.etic-btn:hover {
+    opacity: 0.92;
+}
+
+.etic-card {
+    border-radius: var(--etic-radius, 1rem);
+    background: var(--etic-color-surface, #ffffff);
+}
+
+.etic-product__badge {
+    position: absolute;
+    left: 0.7rem;
+    bottom: 0.7rem;
+    z-index: 1;
+    color: var(--etic-color-muted, #6b6560);
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.etic-product__colors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+}
+
+.etic-product__color {
+    display: block;
+    width: 2.15rem;
+    height: 2.15rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--etic-color-text, #1a1a1a) 14%, transparent);
+    background: #f1f1ef;
+}
+
+.etic-product__color img,
+.etic-product__color > div {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.etic-product__color.is-active {
+    border-color: #171717;
+}
+
+.etic-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--etic-color-text, #171717) 16%, transparent);
+    background: var(--etic-color-surface, #ffffff);
+    padding: 0.5rem 0.75rem;
+}
+
+.etic-static {
+    padding-bottom: clamp(3rem, 7vw, 6rem);
+}
+
+.etic-static__header {
+    max-width: 46rem;
+    margin-bottom: clamp(2rem, 5vw, 3.5rem);
+}
+
+.etic-static__crumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 1.25rem;
+    color: var(--etic-color-muted, #6b6560);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.etic-static__crumb a {
+    text-decoration: none;
+}
+
+.etic-static__kicker {
+    margin: 0 0 0.85rem;
+    color: var(--etic-color-muted, #6b6560);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+}
+
+.etic-static__header h1 {
+    margin: 0;
+    font-family: var(--etic-font-heading, Georgia, serif);
+    font-size: clamp(2.4rem, 6vw, 4.6rem);
+    font-weight: 400;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+}
+
+.etic-static__lede {
+    max-width: 34rem;
+    margin: 1.25rem 0 0;
+    color: var(--etic-color-text, #1a1a1a);
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    font-weight: 300;
+    line-height: 1.65;
+}
+
+.etic-static__meta {
+    margin: 1rem 0 0;
+    color: var(--etic-color-muted, #6b6560);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.etic-static__intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: end;
+    margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.etic-static__copy .etic-static__lede {
+    margin-top: 0;
+    font-size: clamp(1.15rem, 2vw, 1.65rem);
+    line-height: 1.45;
+}
+
+.etic-static__link {
+    display: inline-flex;
+    margin-top: 1.75rem;
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 0.15rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.etic-static__media,
+.etic-static__portrait {
+    min-height: 22rem;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--etic-color-text, #1a1a1a) 8%, var(--etic-color-background, #f4f1ec));
+}
+
+.etic-static__media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 22rem;
+    object-fit: cover;
+}
+
+.etic-static__portrait {
+    display: grid;
+    place-items: center;
+    min-height: 28rem;
+    color: color-mix(in srgb, var(--etic-color-text, #1a1a1a) 55%, transparent);
+}
+
+.etic-static__portrait span {
+    font-family: var(--etic-font-heading, Georgia, serif);
+    font-size: clamp(2rem, 5vw, 4rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.etic-static__highlights {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+    padding: clamp(1.5rem, 4vw, 2.5rem) 0;
+    border-top: 1px solid color-mix(in srgb, var(--etic-color-text, #1a1a1a) 10%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--etic-color-text, #1a1a1a) 10%, transparent);
+}
+
+.etic-static__highlights article span {
+    color: var(--etic-color-muted, #6b6560);
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+}
+
+.etic-static__highlights h2 {
+    margin: 0.55rem 0 0;
+    font-family: var(--etic-font-heading, Georgia, serif);
+    font-size: 1.35rem;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+}
+
+.etic-static__highlights p {
+    max-width: 18rem;
+    margin: 0.5rem 0 0;
+    color: var(--etic-color-muted, #6b6560);
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.etic-static__contacts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+    margin-bottom: clamp(2rem, 5vw, 3.5rem);
+}
+
+.etic-static__card {
+    display: grid;
+    gap: 0.35rem;
+    border: 1px solid color-mix(in srgb, var(--etic-color-text, #1a1a1a) 12%, transparent);
+    background: var(--etic-color-surface, #ffffff);
+    padding: 1.25rem 1.2rem 1.15rem;
+    text-decoration: none;
+    border-radius: var(--etic-radius, 0);
+}
+
+.etic-static__card p,
+.etic-static__nav > p {
+    margin: 0;
+    color: var(--etic-color-muted, #6b6560);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.etic-static__card strong {
+    font-family: var(--etic-font-heading, Georgia, serif);
+    font-size: 1.35rem;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+}
+
+.etic-static__card span {
+    color: var(--etic-color-muted, #6b6560);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.etic-static__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+}
+
+.etic-static__nav {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.etic-static__nav > p {
+    margin-bottom: 0.7rem;
+}
+
+.etic-static__nav a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--etic-color-text, #1a1a1a) 10%, transparent);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+}
+
+.etic-static__nav a.is-active {
+    font-weight: 600;
+}
+
+.etic-static__prose {
+    max-width: 42rem;
+    color: color-mix(in srgb, var(--etic-color-text, #1a1a1a) 88%, transparent);
+    font-size: 0.95rem;
+    line-height: 1.8;
+}
+
+.etic-static__prose > *:first-child {
+    margin-top: 0;
+}
+
+.etic-static__prose h2,
+.etic-static__prose h3 {
+    margin: 2.25rem 0 0.7rem;
+    color: var(--etic-color-text, #1a1a1a);
+    font-family: var(--etic-font-heading, Georgia, serif);
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+.etic-static__prose p,
+.etic-static__prose ul,
+.etic-static__prose ol {
+    margin: 0 0 1rem;
+}
+
+.etic-static__prose a {
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+}
+
+.etic-static__faq {
+    display: grid;
+    gap: 0;
+    border-top: 1px solid color-mix(in srgb, var(--etic-color-text, #1a1a1a) 12%, transparent);
+}
+
+.etic-static__faq details {
+    border-bottom: 1px solid color-mix(in srgb, var(--etic-color-text, #1a1a1a) 12%, transparent);
+}
+
+.etic-static__faq summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.15rem 0;
+    font-family: var(--etic-font-heading, Georgia, serif);
+    font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+}
+
+.etic-static__faq summary::-webkit-details-marker {
+    display: none;
+}
+
+.etic-static__faq summary::after {
+    flex: none;
+    color: var(--etic-color-muted, #6b6560);
+    content: "+";
+    font-family: var(--etic-font-body, ui-sans-serif, system-ui, sans-serif);
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.etic-static__faq details[open] summary::after {
+    content: "–";
+}
+
+.etic-static__faq .etic-static__prose {
+    padding: 0 0 1.35rem;
+}
+
+.etic-static__cta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    margin-top: clamp(3rem, 7vw, 5rem);
+    padding: clamp(1.5rem, 4vw, 2.25rem) 0 0;
+    border-top: 1px solid color-mix(in srgb, var(--etic-color-text, #1a1a1a) 12%, transparent);
+}
+
+.etic-static__cta p {
+    margin: 0;
+    font-family: var(--etic-font-heading, Georgia, serif);
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    letter-spacing: -0.04em;
+}
+
+.etic-static__cta a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 12rem;
+    background: var(--etic-color-primary, #1a1a1a);
+    color: var(--etic-color-primary-text, #ffffff);
+    padding: 0.95rem 1.4rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+@media (hover: hover) {
+    .etic-static__crumb a:hover,
+    .etic-static__link:hover,
+    .etic-static__nav a:hover {
+        opacity: 0.62;
+    }
+
+    .etic-static__card:hover {
+        border-color: var(--etic-color-text, #1a1a1a);
+    }
+
+    .etic-static__cta a:hover {
+        opacity: 0.88;
+    }
+}
+
+@media (min-width: 768px) {
+    .etic-static__intro {
+        grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    }
+
+    .etic-static__media img,
+    .etic-static__portrait {
+        min-height: 34rem;
+    }
+
+    .etic-static__highlights {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .etic-static__contacts {
+        grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    }
+
+    .etic-static__layout {
+        grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr);
+    }
+
+    .etic-static__nav {
+        position: sticky;
+        top: 7.5rem;
+    }
+}

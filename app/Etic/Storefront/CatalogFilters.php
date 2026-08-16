@@ -15,13 +15,14 @@ class CatalogFilters
         public ?int $minPrice = null,
         public ?int $maxPrice = null,
         public bool $inStock = false,
+        public bool $outOfStock = false,
     ) {}
 
     public static function fromRequest(Request $request): self
     {
         return new self(
             search: $request->string('q')->toString() ?: null,
-            sort: in_array($request->string('sort')->toString(), ['newest', 'name', 'price_asc', 'price_desc'], true)
+            sort: in_array($request->string('sort')->toString(), ['newest', 'name', 'price_asc', 'price_desc', 'best_selling'], true)
                 ? $request->string('sort')->toString()
                 : 'newest',
             color: $request->integer('renk') ?: null,
@@ -29,8 +30,18 @@ class CatalogFilters
             brand: $request->integer('marka') ?: null,
             minPrice: self::toMinor($request->input('min')),
             maxPrice: self::toMinor($request->input('max')),
-            inStock: $request->boolean('stok'),
+            inStock: ($availability = self::availability($request)) === 'in',
+            outOfStock: $availability === 'out',
         );
+    }
+
+    public function stockValue(): string
+    {
+        if ($this->outOfStock) {
+            return 'yok';
+        }
+
+        return $this->inStock ? '1' : '';
     }
 
     public function toQuery(): array
@@ -43,8 +54,23 @@ class CatalogFilters
             'marka' => $this->brand,
             'min' => $this->minPrice !== null ? $this->minPrice / 100 : null,
             'max' => $this->maxPrice !== null ? $this->maxPrice / 100 : null,
-            'stok' => $this->inStock ? 1 : null,
+            'stok' => $this->stockValue() ?: null,
         ], fn (mixed $value) => $value !== null && $value !== '');
+    }
+
+    private static function availability(Request $request): ?string
+    {
+        $stock = strtolower(trim((string) $request->input('stok', '')));
+
+        if ($request->boolean('stoksuz') || in_array($stock, ['yok', '0', 'out'], true)) {
+            return 'out';
+        }
+
+        if (in_array($stock, ['1', 'in'], true)) {
+            return 'in';
+        }
+
+        return null;
     }
 
     private static function toMinor(mixed $value): ?int

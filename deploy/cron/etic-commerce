@@ -1,0 +1,4 @@
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+* * * * * www-data php /var/www/etic-commerce/artisan schedule:run >> /dev/null 2>&1

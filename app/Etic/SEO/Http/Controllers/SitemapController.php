@@ -4,6 +4,7 @@ namespace App\Etic\SEO\Http\Controllers;
 
 use App\Etic\CMS\Models\BlogPost;
 use App\Etic\CMS\Models\Page;
+use App\Etic\Storefront\StorefrontPaths;
 use App\Etic\Support\StoreContext;
 use Illuminate\Http\Response;
 use Lunar\Models\Product;
@@ -28,7 +29,7 @@ class SitemapController
                 $slug = $product->defaultUrl?->slug;
 
                 if ($slug) {
-                    $urls->push($base.'/p/'.$slug);
+                    $urls->push($base.StorefrontPaths::product($slug));
                 }
             });
 

@@ -1,8 +1,9 @@
 server {
     listen 80;
-    listen [::]:80;
-    # After SSL in aaPanel this file is usually replaced; keep server_name unique.
-    server_name YOUR-DOMAIN;
+    listen 443 ssl http2;
+    server_name 95.217.160.252;
+    ssl_certificate /www/server/panel/vhost/cert/etic-commerce/fullchain.pem;
+    ssl_certificate_key /www/server/panel/vhost/cert/etic-commerce/privkey.pem;
 
     root /www/wwwroot/etic-commerce/public;
     index index.php index.html;
@@ -12,25 +13,74 @@ server {
 
     client_max_body_size 64m;
 
-    location / {
+    location ^~ /lunar {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
-    location ~ \.php$ {
+    location ^~ /api {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ^~ /livewire {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ^~ /storage {
         try_files $uri =404;
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_index index.php;
-        # aaPanel: change to the PHP version already used on this server (do not start php artisan serve).
-        include enable-php-83.conf;
     }
 
-    location ~* /\.(env|git|htaccess) {
-        deny all;
+    location ^~ /build {
+        try_files $uri =404;
     }
 
-    location ~ /\.(?!well-known).* {
-        deny all;
+    location ^~ /css/ {
+        try_files $uri =404;
+    }
+
+    location ^~ /js/ {
+        try_files $uri =404;
+    }
+
+    location ^~ /fonts/ {
+        try_files $uri =404;
+    }
+
+    location = /up {
+        try_files $uri /index.php?$query_string;
+    }
+
+    location = /sitemap.xml {
+        try_files $uri /index.php?$query_string;
+    }
+
+    location = /robots.txt {
+        try_files $uri /index.php?$query_string;
+    }
+
+    location ^~ /feed/ {
+        try_files $uri /index.php?$query_string;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3010;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 2s;
+        proxy_read_timeout 60s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 = @blade;
+    }
+
+    location @blade {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    include enable-php-83.conf;
+
+    location ~ ^/(\.user.ini|\.htaccess|\.git|\.env) {
+        return 404;
     }
 }

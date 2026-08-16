@@ -1,0 +1,18 @@
+[Unit]
+Description=Etic Commerce Next.js storefront (port 3010 — cokalabalik keeps 3000)
+After=network.target
+
+[Service]
+Type=simple
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/etic-commerce/storefront
+Environment=NODE_ENV=production
+Environment=PORT=3010
+Environment=PATH=/www/server/nodejs/v22.22.3/bin:/usr/bin
+ExecStart=/www/server/nodejs/v22.22.3/bin/npm run start
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

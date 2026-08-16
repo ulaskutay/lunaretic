@@ -29,6 +29,14 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
+        $exceptions->render(function (RuntimeException $e, Request $request) {
+            if (! $request->is('api/*') && ! $request->expectsJson()) {
+                return null;
+            }
+
+            return response()->json(['message' => $e->getMessage()], 422);
+        });
+
         $exceptions->reportable(function (ValidationException $e) {
             if (! request()->is('livewire/upload-file')) {
                 return;
