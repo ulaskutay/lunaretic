@@ -15,7 +15,9 @@ use App\Etic\Integrations\Marketing\Filament\Pages\MarketingSettings;
 use App\Etic\Integrations\Marketing\Http\Middleware\HydrateTracking;
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
 use App\Etic\Integrations\Marketing\TrackingSettings;
+use App\Etic\Integrations\Payments\Filament\Pages\PaymentSettings;
 use App\Etic\Integrations\Payments\IyzicoPaymentType;
+use App\Etic\Integrations\Payments\PaytrPaymentType;
 use App\Etic\Integrations\Shipping\Filament\Pages\ShippingSettings;
 use App\Etic\Integrations\Shipping\ShippingProviderInterface;
 use App\Etic\Integrations\Shipping\TableRateShippingModifier;
@@ -23,9 +25,9 @@ use App\Etic\Integrations\Shipping\TableRateShippingProvider;
 use App\Etic\Media\MediaRelationManagerExtension;
 use App\Etic\Media\RemoteImageDownloader;
 use App\Etic\Orders\Filament\ListOrdersExtension;
+use App\Etic\Orders\Filament\ManageOrderExtension;
+use App\Etic\Search\CatalogProductSearch;
 use App\Etic\SEO\Filament\Resources\RedirectResource;
-use App\Etic\Store\Filament\Resources\StoreResource;
-use App\Etic\Store\Filament\Resources\StoreSettingResource;
 use App\Etic\Storefront\Livewire\AddToCart;
 use App\Etic\Storefront\Livewire\MiniCart;
 use App\Etic\Theme\ActiveTheme;
@@ -39,6 +41,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Lunar\Admin\Filament\Resources\OrderResource\Pages\ListOrders;
+use Lunar\Admin\Filament\Resources\OrderResource\Pages\ManageOrder;
 use Lunar\Admin\Filament\Resources\ProductResource;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\EditProduct;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ListProducts;
@@ -66,6 +69,7 @@ class EticServiceProvider extends ServiceProvider
             'media-library.media_downloader' => RemoteImageDownloader::class,
         ]);
 
+        $this->app->singleton(CatalogProductSearch::class);
         $this->app->singleton(StoreContext::class);
         $this->app->singleton(ThemeRegistry::class);
         $this->app->singleton(ThemeSettings::class);
@@ -97,6 +101,7 @@ class EticServiceProvider extends ServiceProvider
                     ThemeSettingsPage::class,
                     ShippingSettings::class,
                     MarketingSettings::class,
+                    PaymentSettings::class,
                 ])
                 ->resources([
                     PageResource::class,
@@ -104,12 +109,11 @@ class EticServiceProvider extends ServiceProvider
                     BlogCategoryResource::class,
                     MenuResource::class,
                     RedirectResource::class,
-                    StoreResource::class,
-                    StoreSettingResource::class,
                 ]);
         })->extensions([
             MediaRelationManager::class => MediaRelationManagerExtension::class,
             ListOrders::class => ListOrdersExtension::class,
+            ManageOrder::class => ManageOrderExtension::class,
             ProductResource::class => ProductResourceExtension::class,
             ListProducts::class => ListProductsExtension::class,
             EditProduct::class => EditProductExtension::class,
@@ -149,6 +153,7 @@ class EticServiceProvider extends ServiceProvider
         $this->loadViewsFrom(resource_path('themes/'.config('etic.theme', 'default')), 'theme');
 
         Payments::extend('iyzico', fn ($app) => $app->make(IyzicoPaymentType::class));
+        Payments::extend('paytr', fn ($app) => $app->make(PaytrPaymentType::class));
 
         $this->app->make(ShippingModifiers::class)->add(
             TableRateShippingModifier::class

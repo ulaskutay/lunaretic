@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->prepend(IdentifyStore::class);
         $middleware->append(ApplyRedirects::class);
+        $middleware->validateCsrfTokens(except: [
+            'odeme/paytr/callback',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

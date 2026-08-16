@@ -78,11 +78,21 @@
         @endforeach
     </div>
 
-    <div class="etic-search" data-etic-search hidden>
-        <form action="{{ route('search') }}" method="get" class="etic-search__form">
-            <input type="search" name="q" placeholder="Ara" value="{{ request('q') }}" autocomplete="off">
-            <button type="submit" class="etic-search__submit">Ara</button>
-            <button type="button" class="etic-search__close" data-etic-search-toggle aria-label="Kapat">Kapat</button>
-        </form>
+    <div class="etic-search-layer" data-etic-search data-suggestions-url="{{ route('search.suggestions') }}" hidden>
+        <button type="button" class="etic-search-layer__backdrop" data-etic-search-toggle aria-label="Aramayı kapat"></button>
+        <div class="etic-search-layer__panel">
+            <form action="{{ route('search') }}" method="get" class="etic-search__form" data-etic-search-form>
+                <label class="etic-search__label" for="etic-search-input">Ürün ara</label>
+                <input id="etic-search-input" type="search" name="q" placeholder="Ne aramıştınız?" value="{{ request('q') }}" autocomplete="off" enterkeyhint="search" data-etic-search-input>
+                <button type="submit" class="etic-search__submit">Ara</button>
+                <button type="button" class="etic-search__close" data-etic-search-toggle aria-label="Kapat">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </button>
+            </form>
+            <div class="etic-search-suggestions" data-etic-search-suggestions hidden>
+                <p class="etic-search-suggestions__label">Öneriler</p>
+                <ul class="etic-search-suggestions__list" data-etic-search-suggestions-list></ul>
+            </div>
+        </div>
     </div>
 </header>

@@ -18,6 +18,82 @@ class CheckoutService
 
     public function place(Cart $cart, array $payload): Order
     {
+        $cart = $this->prepare($cart, $payload);
+
+        $result = Payments::driver($payload['payment'])
+            ->cart($cart)
+            ->withData([
+                'token' => $payload['payment_token'] ?? null,
+                'status' => $payload['payment_status'] ?? null,
+                'meta' => ['notes' => $payload['notes'] ?? null],
+            ])
+            ->authorize();
+
+        if (! $result?->success) {
+            throw new RuntimeException($result?->message ?: 'Ödeme alınamadı.');
+        }
+
+        CartSession::forget();
+
+        $order = Order::query()->with('productLines')->findOrFail($result->orderId);
+        $this->trackPurchase($order, $payload);
+
+        return $order;
+    }
+
+    public function createPendingOrder(Cart $cart, array $payload): Order
+    {
+        $cart = $this->prepare($cart, $payload);
+
+        $order = $cart->draftOrder()->first() ?? $cart->createOrder();
+
+        if (! $order) {
+            throw new RuntimeException('Sipariş oluşturulamadı.');
+        }
+
+        $order->update([
+            'meta' => array_merge((array) $order->meta, [
+                'payment' => 'paytr',
+                'paytr_merchant_oid' => $order->reference,
+            ]),
+        ]);
+
+        return $order->fresh();
+    }
+
+    public function finalizePaytr(Order $order, array $callback): Order
+    {
+        $result = Payments::driver('paytr')
+            ->order($order)
+            ->withData($callback)
+            ->authorize();
+
+        if (! $result?->success) {
+            throw new RuntimeException($result?->message ?: 'PayTR ödemesi doğrulanamadı.');
+        }
+
+        CartSession::forget();
+
+        $order = Order::query()->with('productLines')->findOrFail($result->orderId);
+        $email = $order->shippingAddress?->contact_email ?? data_get($order->meta, 'email');
+        $phone = $order->shippingAddress?->contact_phone ?? data_get($order->meta, 'phone');
+
+        $this->trackPurchase($order, [
+            'payment' => 'paytr',
+            'email' => $email,
+            'phone' => $phone,
+            'first_name' => $order->shippingAddress?->first_name,
+            'last_name' => $order->shippingAddress?->last_name,
+            'city' => $order->shippingAddress?->city,
+            'state' => $order->shippingAddress?->state,
+            'postcode' => $order->shippingAddress?->postcode,
+        ]);
+
+        return $order;
+    }
+
+    public function prepare(Cart $cart, array $payload): Cart
+    {
         $country = Country::query()->where('iso2', $payload['country_iso2'] ?? 'TR')->firstOrFail();
 
         $shipping = $this->shippingAddress($payload, $country);
@@ -53,27 +129,17 @@ class CheckoutService
         $cart->setShippingOption($option);
         $cart->calculate();
 
-        $result = Payments::driver($payload['payment'])
-            ->cart($cart)
-            ->withData([
-                'token' => $payload['payment_token'] ?? null,
-                'status' => $payload['payment_status'] ?? null,
-                'meta' => ['notes' => $payload['notes'] ?? null],
-            ])
-            ->authorize();
+        return $cart;
+    }
 
-        if (! $result?->success) {
-            throw new RuntimeException($result?->message ?: 'Ödeme alınamadı.');
-        }
-
-        CartSession::forget();
-
-        $order = Order::query()->with('productLines')->findOrFail($result->orderId);
+    /** @param  array<string, mixed>  $payload */
+    private function trackPurchase(Order $order, array $payload): void
+    {
         $value = TrackingDispatcher::fromMinor((int) $order->total->value);
         $currency = $order->currency_code ?: 'TRY';
 
         $this->tracking->record('add_payment_info', [
-            'payment_type' => $payload['payment'],
+            'payment_type' => $payload['payment'] ?? data_get($order->meta, 'payment'),
             'value' => $value,
             'currency' => $currency,
             'user' => $this->trackingUser($payload),
@@ -90,8 +156,6 @@ class CheckoutService
                 'price' => TrackingDispatcher::fromMinor((int) $line->unit_price->value),
             ])->values()->all(),
         ], flash: true);
-
-        return $order;
     }
 
     /** @return array<string, mixed> */

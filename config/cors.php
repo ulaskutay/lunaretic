@@ -8,7 +8,7 @@ return [
 
     'allowed_origins' => array_values(array_filter(array_map(
         trim(...),
-        explode(',', (string) env('ETIC_STOREFRONT_ORIGINS', 'http://localhost:3000'))
+        explode(',', (string) config('etic.storefront.origins', env('ETIC_STOREFRONT_ORIGINS', 'http://localhost:3000')))
     ))),
 
     'allowed_origins_patterns' => [],

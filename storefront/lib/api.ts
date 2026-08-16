@@ -135,6 +135,13 @@ export const storeApi = {
       cartToken: token,
     }),
 
+  paytrToken: (payload: Record<string, unknown>, token?: string | null) =>
+    request<import("./paytr").PaytrPrepareResponse>("/checkout/paytr/token", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      cartToken: token,
+    }),
+
   order: (id: string | number) => request<{ data: Order }>(`/orders/${id}`).then((r) => r.data),
 
   login: (email: string, password: string) =>

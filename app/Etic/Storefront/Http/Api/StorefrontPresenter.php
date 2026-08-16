@@ -9,6 +9,7 @@ use App\Etic\CMS\Models\MenuItem;
 use App\Etic\CMS\Models\Page;
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
 use App\Etic\Integrations\Marketing\TrackingSettings;
+use App\Etic\Integrations\Shipping\ShipmentTracking;
 use App\Etic\Integrations\Shipping\ShippingRates;
 use App\Etic\Media\ProductImage;
 use App\Etic\Orders\OrderStatusScenario;
@@ -243,6 +244,7 @@ class StorefrontPresenter
             'currency' => $order->currency_code ?: 'TRY',
             'shipping_address' => $this->orderAddress($shipping),
             'billing_address' => $this->orderAddress($billing),
+            'tracking' => ShipmentTracking::fromMeta((array) $order->meta),
             'lines' => $order->productLines
                 ->filter(fn ($line) => filled($line->purchasable_id))
                 ->map(fn ($line) => [

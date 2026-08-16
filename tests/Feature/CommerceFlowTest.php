@@ -278,6 +278,35 @@ it('authorizes iyzico when a token is present', function () {
     expect(Order::query()->latest('id')->first()?->status)->toBe('payment-received');
 });
 
+it('creates a pending paytr order and authorizes on callback', function () {
+    $variant = ProductVariant::query()->first();
+    $this->post(route('cart.add'), ['variant_id' => $variant->id, 'quantity' => 1]);
+
+    $tokenResponse = $this->postJson(route('paytr.token'), [
+        'first_name' => 'Ali',
+        'last_name' => 'Yılmaz',
+        'email' => 'ali@example.com',
+        'phone' => '5551112233',
+        'line_one' => 'Test Cad. 1',
+        'city' => 'İstanbul',
+        'payment' => 'paytr',
+    ]);
+
+    $tokenResponse->assertOk()
+        ->assertJsonStructure(['post_url', 'fields', 'order_id']);
+
+    $order = Order::query()->findOrFail($tokenResponse->json('order_id'));
+    expect($order->status)->toBe('awaiting-payment');
+
+    $this->post(route('paytr.callback'), [
+        'merchant_oid' => $order->reference,
+        'status' => 'success',
+        'total_amount' => (string) $order->total->value,
+    ])->assertOk()->assertSee('OK');
+
+    expect($order->fresh()->status)->toBe('payment-received');
+});
+
 it('walks an order through the fulfilment status scenario', function () {
     $order = Order::factory()->create([
         'status' => OrderStatusScenario::PAYMENT_OFFLINE,

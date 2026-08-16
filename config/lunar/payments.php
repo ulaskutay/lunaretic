@@ -13,6 +13,10 @@ return [
             'driver' => 'iyzico',
             'authorized' => 'payment-received',
         ],
+        'paytr' => [
+            'driver' => 'paytr',
+            'authorized' => 'payment-received',
+        ],
     ],
 
 ];

@@ -248,6 +248,139 @@ function initMegaMenu() {
     });
 }
 
+function setSearchExpanded(header, expanded) {
+    header.querySelectorAll('[data-etic-search-toggle]').forEach((button) => {
+        setExpanded(button, expanded);
+    });
+}
+
+function syncSearchOffset(header, search) {
+    if (! header || ! search) {
+        return;
+    }
+
+    search.style.setProperty('--etic-search-offset', `${header.getBoundingClientRect().bottom}px`);
+}
+
+function setSearchOpen(header, open) {
+    const search = header.querySelector('[data-etic-search]');
+
+    header.classList.toggle('is-search-open', open);
+    document.body.classList.toggle('etic-search-open', open);
+    setSearchExpanded(header, open);
+
+    if (search) {
+        search.hidden = ! open;
+
+        if (open) {
+            syncSearchOffset(header, search);
+            const input = search.querySelector('[data-etic-search-input]');
+            input?.focus();
+            fetchSearchSuggestions(search, input?.value.trim() ?? '');
+        } else {
+            clearSearchSuggestions(search);
+        }
+    }
+}
+
+let searchSuggestionsTimer = null;
+let searchSuggestionsController = null;
+
+function clearSearchSuggestions(search) {
+    const container = search?.querySelector('[data-etic-search-suggestions]');
+    const list = search?.querySelector('[data-etic-search-suggestions-list]');
+
+    if (list) {
+        list.innerHTML = '';
+    }
+
+    if (container) {
+        container.hidden = true;
+    }
+}
+
+function renderSearchSuggestions(search, items) {
+    const container = search.querySelector('[data-etic-search-suggestions]');
+    const list = search.querySelector('[data-etic-search-suggestions-list]');
+
+    if (! container || ! list) {
+        return;
+    }
+
+    list.innerHTML = '';
+
+    if (! items.length) {
+        container.hidden = true;
+
+        return;
+    }
+
+    items.forEach((item) => {
+        const li = document.createElement('li');
+        li.className = 'etic-search-suggestions__item';
+
+        const image = item.image
+            ? `<img class="etic-search-suggestions__thumb" src="${item.image}" alt="" loading="lazy">`
+            : '<span class="etic-search-suggestions__thumb" aria-hidden="true"></span>';
+
+        li.innerHTML = `
+            <a href="${item.url}">
+                ${image}
+                <span class="etic-search-suggestions__name">${item.name}</span>
+                <span class="etic-search-suggestions__price">${item.price ?? ''}</span>
+            </a>
+        `;
+
+        list.appendChild(li);
+    });
+
+    container.hidden = false;
+}
+
+function fetchSearchSuggestions(search, term) {
+    const url = search?.dataset.suggestionsUrl;
+
+    if (! url || ! search) {
+        return;
+    }
+
+    if (term.length < 2) {
+        clearSearchSuggestions(search);
+
+        return;
+    }
+
+    if (searchSuggestionsController) {
+        searchSuggestionsController.abort();
+    }
+
+    searchSuggestionsController = new AbortController();
+
+    fetch(`${url}?q=${encodeURIComponent(term)}`, {
+        headers: { Accept: 'application/json' },
+        signal: searchSuggestionsController.signal,
+    })
+        .then((response) => response.json())
+        .then((payload) => renderSearchSuggestions(search, payload.data ?? []))
+        .catch(() => {});
+}
+
+function initSearchSuggestions() {
+    const search = document.querySelector('[data-etic-search]');
+    const input = search?.querySelector('[data-etic-search-input]');
+
+    if (! search || ! input) {
+        return;
+    }
+
+    input.addEventListener('input', () => {
+        window.clearTimeout(searchSuggestionsTimer);
+        searchSuggestionsTimer = window.setTimeout(() => {
+            fetchSearchSuggestions(search, input.value.trim());
+        }, 200);
+    });
+}
+
 function closeOverlays() {
     const header = headerRoot();
 
@@ -256,9 +389,10 @@ function closeOverlays() {
     }
 
     header.classList.remove('is-nav-open', 'is-search-open');
+    document.body.classList.remove('etic-search-open');
     closeMegaPanels();
     setExpanded(header.querySelector('[data-etic-nav-toggle]'), false);
-    setExpanded(header.querySelector('[data-etic-search-toggle]'), false);
+    setSearchExpanded(header, false);
 
     const search = header.querySelector('[data-etic-search]');
 
@@ -280,30 +414,17 @@ document.addEventListener('click', (event) => {
     if (navToggle) {
         const open = ! header.classList.contains('is-nav-open');
         header.classList.toggle('is-nav-open', open);
-        header.classList.remove('is-search-open');
+        setSearchOpen(header, false);
         setExpanded(navToggle, open);
-        setExpanded(header.querySelector('[data-etic-search-toggle]'), false);
-        const search = header.querySelector('[data-etic-search]');
-        if (search) {
-            search.hidden = true;
-        }
         return;
     }
 
     if (searchToggle) {
         const search = header.querySelector('[data-etic-search]');
         const open = Boolean(search?.hidden);
-        header.classList.toggle('is-search-open', open);
         header.classList.remove('is-nav-open');
-        setExpanded(searchToggle, open);
         setExpanded(header.querySelector('[data-etic-nav-toggle]'), false);
-
-        if (search) {
-            search.hidden = ! open;
-            if (open) {
-                search.querySelector('input')?.focus();
-            }
-        }
+        setSearchOpen(header, open);
         return;
     }
 
@@ -341,11 +462,17 @@ document.addEventListener('keydown', (event) => {
 });
 
 initMegaMenu();
+initSearchSuggestions();
 
 window.addEventListener('resize', () => {
-    if (window.matchMedia('(min-width: 768px)').matches) {
-        const header = headerRoot();
+    const header = headerRoot();
+    const search = header?.querySelector('[data-etic-search]');
 
+    if (header?.classList.contains('is-search-open') && search) {
+        syncSearchOffset(header, search);
+    }
+
+    if (window.matchMedia('(min-width: 768px)').matches) {
         if (header?.classList.contains('is-nav-open')) {
             closeOverlays();
         }

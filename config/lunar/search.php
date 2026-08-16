@@ -1,5 +1,7 @@
 <?php
 
+use App\Etic\Catalog\Models\Product as EticProduct;
+use App\Etic\Search\ProductIndexer;
 use Lunar\Models\Brand;
 use Lunar\Models\Collection;
 use Lunar\Models\Customer;
@@ -10,7 +12,6 @@ use Lunar\Search\BrandIndexer;
 use Lunar\Search\CollectionIndexer;
 use Lunar\Search\CustomerIndexer;
 use Lunar\Search\OrderIndexer;
-use Lunar\Search\ProductIndexer;
 use Lunar\Search\ProductOptionIndexer;
 
 return [
@@ -33,7 +34,7 @@ return [
         Collection::class,
         Customer::class,
         Order::class,
-        Product::class,
+        EticProduct::class,
         ProductOption::class,
 
         /*
@@ -52,9 +53,15 @@ return [
     |
     */
     'engine_map' => [
-        // Lunar\Models\Product::class => 'algolia',
-        // Lunar\Models\Order::class => 'meilisearch',
-        // Lunar\Models\Collection::class => 'meilisearch',
+        // EticProduct::class => 'meilisearch',
+    ],
+
+    'facets' => [
+        EticProduct::class => [
+            'brand' => [
+                'label' => 'Marka',
+            ],
+        ],
     ],
 
     'indexers' => [
@@ -63,6 +70,7 @@ return [
         Customer::class => CustomerIndexer::class,
         Order::class => OrderIndexer::class,
         Product::class => ProductIndexer::class,
+        EticProduct::class => ProductIndexer::class,
         ProductOption::class => ProductOptionIndexer::class,
     ],
 

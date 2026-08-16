@@ -1,5 +1,7 @@
 <?php
 
+use App\Etic\Integrations\Payments\Http\Controllers\PaytrController;
+use App\Etic\Storefront\Http\Controllers\SearchSuggestionsController;
 use App\Etic\Storefront\Http\Api\AuthApiController;
 use App\Etic\Storefront\Http\Api\CartApiController;
 use App\Etic\Storefront\Http\Api\StoreApiController;
@@ -9,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['throttle:60,1', BindStorefrontSession::class])->prefix('v1')->group(function () {
     Route::get('/bootstrap', [StoreApiController::class, 'bootstrap']);
     Route::get('/products', [StoreApiController::class, 'products']);
+    Route::get('/search/suggestions', SearchSuggestionsController::class);
     Route::get('/products/{slug}', [StoreApiController::class, 'product']);
     Route::get('/categories', [StoreApiController::class, 'categories']);
     Route::get('/brands', [StoreApiController::class, 'brands']);
@@ -26,6 +29,7 @@ Route::middleware(['throttle:60,1', BindStorefrontSession::class])->prefix('v1')
 
     Route::get('/checkout', [CartApiController::class, 'checkout']);
     Route::post('/checkout', [CartApiController::class, 'place']);
+    Route::post('/checkout/paytr/token', [PaytrController::class, 'token']);
     Route::get('/orders/{order}', [CartApiController::class, 'order']);
 
     Route::post('/auth/register', [AuthApiController::class, 'register']);

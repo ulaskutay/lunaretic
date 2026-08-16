@@ -4,6 +4,7 @@ namespace App\Etic\Store\Filament\Resources;
 
 use App\Etic\Store\Filament\Resources\StoreSettingResource\Pages;
 use App\Etic\Store\Models\StoreSetting;
+use App\Etic\Support\StoreContext;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -41,7 +42,7 @@ class StoreSettingResource extends Resource
             TextInput::make('channel_handle')
                 ->label(__('etic.filament.settings.channel'))
                 ->required()
-                ->default(fn () => config('etic.store.handle')),
+                ->default(fn () => app(StoreContext::class)->handle()),
             TextInput::make('group')
                 ->label(__('etic.filament.settings.group'))
                 ->required()

@@ -1,19 +1,21 @@
 <?php
 
 use App\Etic\Integrations\Marketing\Http\Controllers\GoogleMerchantFeedController;
+use App\Etic\Integrations\Payments\Http\Controllers\PaytrController;
 use App\Etic\SEO\Http\Controllers\RobotsController;
 use App\Etic\SEO\Http\Controllers\SitemapController;
 use App\Etic\Storefront\Http\Controllers\StorefrontController;
 use App\Etic\Storefront\Http\Middleware\BindStorefrontSession;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(BindStorefrontSession::class)->group(function () {
+Route::middleware([BindStorefrontSession::class])->group(function () {
     Route::get('/', [StorefrontController::class, 'home'])->name('home');
     Route::get('/koleksiyon', [StorefrontController::class, 'catalog'])->name('catalog');
     Route::get('/koleksiyon/{slug}', [StorefrontController::class, 'collection'])->name('collection')->where('slug', '^(?!favicon\.ico$).+');
     Route::get('/urun/{slug}', [StorefrontController::class, 'product'])->name('product')->where('slug', '^(?!favicon\.ico$).+');
     Route::get('/p/{slug}', fn (string $slug) => redirect()->route('product', $slug, 301));
     Route::get('/ara', [StorefrontController::class, 'search'])->name('search');
+    Route::get('/ara/oneriler', \App\Etic\Storefront\Http\Controllers\SearchSuggestionsController::class)->name('search.suggestions');
     Route::get('/sayfa/{slug}', [StorefrontController::class, 'page'])->name('page');
     Route::get('/blog', [StorefrontController::class, 'blogIndex'])->name('blog.index');
     Route::get('/blog/{slug}', [StorefrontController::class, 'blogShow'])->name('blog.show');
@@ -27,6 +29,10 @@ Route::middleware(BindStorefrontSession::class)->group(function () {
 
     Route::get('/odeme', [StorefrontController::class, 'checkout'])->name('checkout.show');
     Route::post('/odeme', [StorefrontController::class, 'placeOrder'])->name('checkout.place');
+    Route::post('/odeme/paytr/token', [PaytrController::class, 'token'])->name('paytr.token');
+    Route::post('/odeme/paytr/callback', [PaytrController::class, 'callback'])->name('paytr.callback');
+    Route::get('/odeme/paytr/basarili/{order}', [PaytrController::class, 'success'])->name('paytr.success');
+    Route::get('/odeme/paytr/basarisiz/{order}', [PaytrController::class, 'fail'])->name('paytr.fail');
     Route::get('/siparis/{order}', [StorefrontController::class, 'success'])->name('checkout.success');
 
     Route::get('/giris', [StorefrontController::class, 'loginForm'])->name('login');

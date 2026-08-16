@@ -31,11 +31,15 @@ Priority filter: *Does this help launch the first boxer store or sell the platfo
 - [x] Theme engine (`resources/themes/*`, tokens, Filament theme settings)
 - Multi-tenant SaaS billing
 - Additional payment (PayTR, Stripe)
-- Cargo APIs (Yurtiçi, MNG, Aras, Sürat, Hepsijet)
+- Cargo APIs (Yurtiçi, MNG, Hepsijet)
+- [x] Aras Kargo (SetOrder + tracking)
+- [x] Sürat Kargo (SOAP gönderi + takip)
+- [x] MNG Kargo (REST gönderi)
+- [x] Yurtiçi Kargo (SOAP createShipment)
 - Marketplace, B2B, ERP, CRM
 - Visual page builder
 - AI features
-- Meilisearch / Algolia
+- [x] Meilisearch / Algolia (Scout + `lunarphp/search`; SQL fallback when `SCOUT_DRIVER=null`)
 
 ## Suggested sequence after this repository scaffold
 

@@ -7,16 +7,17 @@ import { storeApi } from "@/lib/api";
 import { useStorefront } from "@/lib/store";
 import { CouponForm } from "@/components/cart-widgets";
 import { track } from "@/components/tracking";
+import { submitPaytrDirectPayment } from "@/lib/paytr";
 import type { ShippingOption } from "@/lib/types";
 
-type PayTab = "iyzico" | "havale" | "kapida";
+type PayTab = "paytr" | "havale" | "kapida";
 
 export default function CheckoutPage() {
   const { cart, token, clearCartToken } = useStorefront();
   const router = useRouter();
   const [options, setOptions] = useState<ShippingOption[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [payTab, setPayTab] = useState<PayTab>("iyzico");
+  const [payTab, setPayTab] = useState<PayTab>("paytr");
   const [pending, setPending] = useState(false);
   const [sameBilling, setSameBilling] = useState(true);
   const [corporateBilling, setCorporateBilling] = useState(false);
@@ -39,10 +40,31 @@ export default function CheckoutPage() {
     const payload = Object.fromEntries(form.entries());
 
     try {
+      if (payTab === "paytr") {
+        const prepare = await storeApi.paytrToken(
+          {
+            ...payload,
+            payment: "paytr",
+            same_as_shipping: sameBilling,
+            billing_is_corporate: corporateBilling,
+          },
+          token,
+        );
+
+        await submitPaytrDirectPayment(prepare, {
+          cc_owner: String(payload.card_name ?? ""),
+          card_number: String(payload.card_number ?? ""),
+          card_expiry: String(payload.card_expiry ?? ""),
+          cvv: String(payload.card_cvc ?? ""),
+        });
+
+        return;
+      }
+
       const response = await storeApi.placeOrder(
         {
           ...payload,
-          payment: payTab === "iyzico" ? "iyzico" : "cash-in-hand",
+          payment: "cash-in-hand",
           same_as_shipping: sameBilling,
           billing_is_corporate: corporateBilling,
         },
@@ -218,35 +240,30 @@ export default function CheckoutPage() {
           <section className="rounded-xl border border-neutral-200 bg-white p-5">
             <h2 className="mb-5 text-lg font-semibold">Ödeme yöntemi</h2>
             <div className="grid gap-3 sm:grid-cols-3">
-              <button type="button" className={tabClass("iyzico")} onClick={() => setPayTab("iyzico")}>Kredi kartı</button>
+              <button type="button" className={tabClass("paytr")} onClick={() => setPayTab("paytr")}>Kredi kartı</button>
               <button type="button" className={tabClass("havale")} onClick={() => setPayTab("havale")}>Havale / EFT</button>
               <button type="button" className={tabClass("kapida")} onClick={() => setPayTab("kapida")}>Kapıda ödeme</button>
             </div>
-            {payTab === "iyzico" ? (
+            {payTab === "paytr" ? (
               <div className="mt-5 grid gap-4">
                 <label className="block">
                   <span className="mb-1.5 block text-[0.65rem] font-semibold uppercase tracking-wider text-muted">Kart üzerindeki isim</span>
-                  <input name="card_name" autoComplete="cc-name" className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" />
+                  <input name="card_name" autoComplete="cc-name" required className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" />
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-[0.65rem] font-semibold uppercase tracking-wider text-muted">Kart numarası</span>
-                  <input name="card_number" inputMode="numeric" autoComplete="cc-number" placeholder="•••• •••• •••• ••••" className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" />
+                  <input name="card_number" inputMode="numeric" autoComplete="cc-number" placeholder="•••• •••• •••• ••••" required className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" />
                 </label>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block">
                     <span className="mb-1.5 block text-[0.65rem] font-semibold uppercase tracking-wider text-muted">Son kullanma (AA/YY)</span>
-                    <input name="card_expiry" autoComplete="cc-exp" placeholder="AA/YY" className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" />
+                    <input name="card_expiry" autoComplete="cc-exp" placeholder="AA/YY" required className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" />
                   </label>
                   <label className="block">
                     <span className="mb-1.5 block text-[0.65rem] font-semibold uppercase tracking-wider text-muted">CVC</span>
-                    <input name="card_cvc" inputMode="numeric" autoComplete="cc-csc" className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" />
+                    <input name="card_cvc" inputMode="numeric" autoComplete="cc-csc" required className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm" />
                   </label>
                 </div>
-                <label className="flex items-start gap-2 text-sm text-muted">
-                  <input type="checkbox" className="mt-0.5 accent-brand" />
-                  Sonraki alışverişlerim için bilgilerimi güvenle kaydet.
-                </label>
-                <input type="hidden" name="payment_token" value="test-token" />
               </div>
             ) : (
               <p className="mt-5 rounded-lg bg-neutral-50 p-4 text-sm text-muted">

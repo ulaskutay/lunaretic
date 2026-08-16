@@ -1,7 +1,7 @@
 <x-storefront-layout>
     @php
         $shippingFree = $shippingOptions->contains(fn ($option) => (int) $option->getPrice()->value === 0);
-        $selectedPayment = old('payment', 'iyzico');
+        $selectedPayment = old('payment', 'paytr');
     @endphp
 
     <section class="etic-checkout" data-etic-checkout>
@@ -111,7 +111,7 @@
                 <section class="etic-checkout__card">
                     <h2 class="etic-checkout__card-title">Ödeme yöntemi</h2>
                     <div class="etic-checkout__pay-tabs" role="tablist" aria-label="Ödeme yöntemi">
-                        <button type="button" class="etic-checkout__pay-tab" data-pay-tab="iyzico" data-pay-driver="iyzico" role="tab" aria-selected="false">
+                        <button type="button" class="etic-checkout__pay-tab" data-pay-tab="paytr" data-pay-driver="paytr" role="tab" aria-selected="false">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" /><path d="M2.5 10h19" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
                             <span>Kredi kartı</span>
                         </button>
@@ -125,29 +125,8 @@
                         </button>
                     </div>
 
-                    <div class="etic-checkout__pay-panel" data-pay-panel="iyzico" role="tabpanel">
-                        <label class="etic-checkout__field">
-                            <span class="etic-checkout__label">Kart üzerindeki isim</span>
-                            <input name="card_name" autocomplete="cc-name" class="etic-checkout__input">
-                        </label>
-                        <label class="etic-checkout__field">
-                            <span class="etic-checkout__label">Kart numarası</span>
-                            <input name="card_number" inputmode="numeric" autocomplete="cc-number" placeholder="•••• •••• •••• ••••" class="etic-checkout__input">
-                        </label>
-                        <div class="etic-checkout__row">
-                            <label class="etic-checkout__field">
-                                <span class="etic-checkout__label">Son kullanma (AA/YY)</span>
-                                <input name="card_expiry" autocomplete="cc-exp" placeholder="AA/YY" class="etic-checkout__input">
-                            </label>
-                            <label class="etic-checkout__field">
-                                <span class="etic-checkout__label">CVC</span>
-                                <input name="card_cvc" inputmode="numeric" autocomplete="cc-csc" class="etic-checkout__input">
-                            </label>
-                        </div>
-                        <label class="etic-checkout__checkbox">
-                            <input type="checkbox">
-                            Sonraki alışverişlerim için bilgilerimi güvenle kaydet.
-                        </label>
+                    <div class="etic-checkout__pay-panel" data-pay-panel="paytr" role="tabpanel">
+                        @include('etic.checkout-paytr-card')
                     </div>
                     <div class="etic-checkout__pay-note" data-pay-panel="havale" hidden>
                         Siparişi tamamladıktan sonra havale/EFT bilgileri e-posta ile iletilir. Ödeme onaylanınca kargoya verilir.
@@ -226,14 +205,135 @@
         </form>
     </section>
 
+    @include('etic.checkout-paytr-config')
+
     <script>
         (() => {
+            const config = window.eticPaytrCheckout;
             const root = document.querySelector('[data-etic-checkout]');
-            if (!root) return;
+            if (!root || !config) return;
 
             const input = root.querySelector('[data-payment-input]');
             const tabs = [...root.querySelectorAll('[data-pay-tab]')];
             const panels = [...root.querySelectorAll('[data-pay-panel]')];
+            const form = root.querySelector('[data-checkout-form]');
+            const paytrFields = [...root.querySelectorAll('[data-paytr-field]')];
+            const csrf = form?.querySelector('input[name="_token"]')?.value;
+
+            function paytrValue(name) {
+                return root.querySelector(`[data-paytr-field="${name}"]`)?.value?.trim() ?? '';
+            }
+
+            function parseExpiry(value) {
+                const match = value.replace(/\s+/g, '').match(/^(\d{2})\/?(\d{2,4})$/);
+                if (!match) return null;
+
+                const month = match[1];
+                let year = match[2];
+                if (year.length === 4) {
+                    year = year.slice(-2);
+                }
+
+                return { month, year };
+            }
+
+            function togglePaytrRequired(active) {
+                paytrFields.forEach((field) => {
+                    field.required = active;
+                    field.disabled = !active;
+                });
+            }
+
+            function appendHidden(target, name, value) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = name;
+                hidden.value = value;
+                target.appendChild(hidden);
+            }
+
+            async function completeDevPayment(payload) {
+                const body = new URLSearchParams({
+                    merchant_oid: payload.merchant_oid,
+                    status: 'success',
+                    total_amount: payload.total_amount,
+                });
+
+                await fetch(payload.callback_url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body,
+                });
+
+                window.location.href = payload.success_url;
+            }
+
+            function submitToPaytr(payload) {
+                const owner = paytrValue('cc_owner');
+                const cardNumber = paytrValue('card_number').replace(/\s+/g, '');
+                const expiry = parseExpiry(paytrValue('card_expiry'));
+                const cvv = paytrValue('cvv');
+
+                if (!owner || cardNumber.length < 12 || !expiry || cvv.length < 3) {
+                    throw new Error('Kart bilgilerini kontrol edin.');
+                }
+
+                if (payload.dev) {
+                    return completeDevPayment(payload);
+                }
+
+                const paytrForm = document.createElement('form');
+                paytrForm.method = 'POST';
+                paytrForm.action = payload.post_url;
+                paytrForm.style.display = 'none';
+
+                Object.entries(payload.fields).forEach(([name, value]) => {
+                    appendHidden(paytrForm, name, String(value));
+                });
+
+                appendHidden(paytrForm, 'cc_owner', owner);
+                appendHidden(paytrForm, 'card_number', cardNumber);
+                appendHidden(paytrForm, 'expiry_month', expiry.month);
+                appendHidden(paytrForm, 'expiry_year', expiry.year);
+                appendHidden(paytrForm, 'cvv', cvv);
+
+                document.body.appendChild(paytrForm);
+                paytrForm.submit();
+            }
+
+            form?.addEventListener('submit', async (event) => {
+                if (input.value !== 'paytr') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const submitButton = form.querySelector('[type="submit"]');
+                submitButton?.setAttribute('disabled', 'disabled');
+
+                try {
+                    const prepareData = new FormData(form);
+                    const response = await fetch(config.prepareUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrf,
+                        },
+                        body: prepareData,
+                    });
+
+                    const payload = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(payload.message || 'Ödeme başlatılamadı.');
+                    }
+
+                    await submitToPaytr(payload);
+                } catch (error) {
+                    window.alert(error instanceof Error ? error.message : 'Ödeme başlatılamadı.');
+                    submitButton?.removeAttribute('disabled');
+                }
+            });
 
             function select(tab) {
                 const name = tab.dataset.payTab;
@@ -248,6 +348,8 @@
                 panels.forEach((panel) => {
                     panel.hidden = panel.dataset.payPanel !== name;
                 });
+
+                togglePaytrRequired(name === 'paytr');
             }
 
             tabs.forEach((tab) => tab.addEventListener('click', () => select(tab)));

@@ -2,6 +2,7 @@
 
 namespace App\Etic\Storefront;
 
+use App\Etic\Search\CatalogProductSearch;
 use App\Etic\Support\StoreContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,7 +19,10 @@ use Lunar\Models\Url;
 
 class CatalogQuery
 {
-    public function __construct(private StoreContext $store) {}
+    public function __construct(
+        private StoreContext $store,
+        private CatalogProductSearch $productSearch,
+    ) {}
 
     public function publishedProducts(?CatalogFilters $filters = null, ?Collection $collection = null): LengthAwarePaginator
     {
@@ -38,11 +42,24 @@ class CatalogQuery
             $query->whereHas('collections', fn ($collections) => $collections->whereKey($collection->id));
         }
 
+        $searchIds = null;
+
         if (filled($filters->search)) {
-            $search = $filters->search;
-            $query->where(function ($builder) use ($search) {
-                $builder->whereHas('urls', fn ($urls) => $urls->where('slug', 'like', '%'.$search.'%'));
-            });
+            $searchIds = $this->productSearch->matchingProductIds($filters->search);
+
+            if ($searchIds !== null) {
+                if ($searchIds === []) {
+                    return $query->whereRaw('1 = 0')->paginate(12)->withQueryString();
+                }
+
+                $query->whereIn("{$productsTable}.id", $searchIds);
+            } else {
+                $search = $filters->search;
+                $query->where(function ($builder) use ($search) {
+                    $builder->whereHas('urls', fn ($urls) => $urls->where('slug', 'like', '%'.$search.'%'))
+                        ->orWhereHas('variants', fn ($variants) => $variants->where('sku', 'like', '%'.$search.'%'));
+                });
+            }
         }
 
         if ($filters->brand) {
@@ -99,13 +116,21 @@ class CatalogQuery
 
         $query->orderBy($outOfStockLast);
 
-        match ($filters->sort) {
-            'name' => $query->orderBy('id'),
-            'price_asc' => $query->orderBy($lowestPrice, 'asc'),
-            'price_desc' => $query->orderBy($lowestPrice, 'desc'),
-            'best_selling' => $query->orderBy($salesCount, 'desc')->latest("{$productsTable}.id"),
-            default => $query->latest('id'),
-        };
+        $useSearchRelevance = filled($filters->search)
+            && $searchIds !== null
+            && $filters->sort === 'newest';
+
+        if ($useSearchRelevance) {
+            $this->orderByIds($query, $productsTable.'.id', $searchIds);
+        } else {
+            match ($filters->sort) {
+                'name' => $query->orderBy('id'),
+                'price_asc' => $query->orderBy($lowestPrice, 'asc'),
+                'price_desc' => $query->orderBy($lowestPrice, 'desc'),
+                'best_selling' => $query->orderBy($salesCount, 'desc')->latest("{$productsTable}.id"),
+                default => $query->latest('id'),
+            };
+        }
 
         $paginator = $query->paginate(12)->withQueryString();
         $this->hydrateColorVariants($paginator->getCollection());
@@ -251,6 +276,25 @@ class CatalogQuery
             ->channel($this->store->channel())
             ->with('defaultUrl')
             ->findOrFail($url->element_id);
+    }
+
+    private function orderByIds(Builder $query, string $column, array $ids): void
+    {
+        if ($ids === []) {
+            return;
+        }
+
+        $cases = collect($ids)
+            ->values()
+            ->map(fn (int $id, int $index): string => 'WHEN ? THEN ?')
+            ->implode(' ');
+
+        $bindings = collect($ids)
+            ->values()
+            ->flatMap(fn (int $id, int $index): array => [$id, $index])
+            ->all();
+
+        $query->orderByRaw("CASE {$column} {$cases} ELSE 9999 END", $bindings);
     }
 
     private function constrainVariants(Builder $variants, CatalogFilters $filters, bool $inStock): void

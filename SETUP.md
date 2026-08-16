@@ -69,6 +69,10 @@ Mağazalar `/lunar` → Ayarlar → Mağazalar üzerinden eklenir. Host eşleşm
 | `META_CAPI_ACCESS_TOKEN` | Meta CAPI access token (never commit; panel can override) |
 | `META_TEST_EVENT_CODE` | Optional Events Manager test code |
 | `GOOGLE_SITE_VERIFICATION` | Search Console meta tag |
+| `SCOUT_DRIVER` | `null` (SQL fallback), `database`, or `meilisearch` |
+| `MEILISEARCH_HOST` / `MEILISEARCH_KEY` | Meilisearch instance (local: `docker compose up -d`) |
+| `SCOUT_QUEUE` | `true` in production to queue index sync |
+| `ETIC_SEARCH_MAX_RESULTS` | Max product IDs returned from search (default `1000`) |
 
 Merchant feed (no extra env): `https://{host}/feed/google-merchant.xml`
 
@@ -89,6 +93,33 @@ php artisan queue:work --timeout=900
 ```
 
 `composer serve` bunu başlatmaz. Üretimde `etic-queue` systemd servisi çalışır.
+
+## Search (Meilisearch)
+
+Storefront catalog search uses Laravel Scout via `lunarphp/search`. With `SCOUT_DRIVER=null` (default), search falls back to SQL slug/SKU matching.
+
+Local Meilisearch:
+
+```bash
+docker compose up -d
+```
+
+`.env`:
+
+```bash
+SCOUT_DRIVER=meilisearch
+MEILISEARCH_HOST=http://127.0.0.1:7700
+MEILISEARCH_KEY=dev-master-key
+```
+
+Index setup and import:
+
+```bash
+php artisan lunar:meilisearch:setup
+php artisan lunar:search:index "App\Etic\Catalog\Models\Product" --refresh
+```
+
+Re-import after bulk product changes. With `SCOUT_QUEUE=true`, run `queue:work` so index updates stay async.
 
 ## Tests
 

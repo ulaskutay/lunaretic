@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Bootstrap } from "@/lib/types";
 import { useStorefront } from "@/lib/store";
@@ -43,6 +43,24 @@ function IconMenu() {
   );
 }
 
+function IconClose() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+type SearchSuggestion = {
+  id: number;
+  name: string;
+  url: string;
+  image: string | null;
+  price: string | null;
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+
 export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
   const { cartCount, authToken } = useStorefront();
   const router = useRouter();
@@ -50,7 +68,13 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
   const [scrolled, setScrolled] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [activeMega, setActiveMega] = useState<number | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+  const suggestionsTimer = useRef<number | null>(null);
+  const suggestionsController = useRef<AbortController | null>(null);
   const theme = bootstrap.theme;
   const overlay = theme.header_style === "overlay";
   const isHome = pathname === "/";
@@ -72,8 +96,46 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
   useEffect(() => {
     setNavOpen(false);
     setSearchOpen(false);
+    setSearchQuery("");
+    setSuggestions([]);
     setActiveMega(null);
   }, [pathname]);
+
+  function fetchSuggestions(term: string) {
+    if (term.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    suggestionsController.current?.abort();
+    suggestionsController.current = new AbortController();
+
+    fetch(`${API_URL}/search/suggestions?q=${encodeURIComponent(term)}`, {
+      headers: { Accept: "application/json" },
+      signal: suggestionsController.current.signal,
+    })
+      .then((response) => response.json())
+      .then((payload) => setSuggestions(payload.data ?? []))
+      .catch(() => {});
+  }
+
+  function onSearchInput(value: string) {
+    setSearchQuery(value);
+
+    if (suggestionsTimer.current) {
+      window.clearTimeout(suggestionsTimer.current);
+    }
+
+    suggestionsTimer.current = window.setTimeout(() => {
+      fetchSuggestions(value.trim());
+    }, 200);
+  }
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSuggestions([]);
+  }
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -82,18 +144,56 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
         setNavOpen(false);
         setActiveMega(null);
       }
+
+      if (searchOpen && headerRef.current && searchRef.current) {
+        searchRef.current.style.setProperty("--etic-search-offset", `${headerRef.current.getBoundingClientRect().bottom}px`);
+      }
     };
     mq.addEventListener("change", onResize);
-    return () => mq.removeEventListener("change", onResize);
-  }, []);
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => {
+      mq.removeEventListener("change", onResize);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [searchOpen]);
+
+  useEffect(() => {
+    document.body.classList.toggle("etic-search-open", searchOpen);
+
+    if (! searchOpen || ! headerRef.current || ! searchRef.current) {
+      return;
+    }
+
+    searchRef.current.style.setProperty("--etic-search-offset", `${headerRef.current.getBoundingClientRect().bottom}px`);
+    const input = searchRef.current.querySelector<HTMLInputElement>('input[type="search"]');
+    input?.focus();
+
+    return () => {
+      document.body.classList.remove("etic-search-open");
+    };
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (! searchOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeSearch();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [searchOpen]);
 
   const tiles = megaTiles(theme);
 
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const q = new FormData(event.currentTarget).get("q");
-    router.push(`/ara?q=${encodeURIComponent(String(q ?? ""))}`);
-    setSearchOpen(false);
+    router.push(`/ara?q=${encodeURIComponent(searchQuery)}`);
+    closeSearch();
   }
 
   const classes = [
@@ -112,7 +212,7 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
   return (
     <>
       {theme.announcement ? <div className="etic-announcement">{theme.announcement}</div> : null}
-      <header className={classes} data-etic-header>
+      <header ref={headerRef} className={classes} data-etic-header>
         <div className="etic-header__bg" aria-hidden="true" />
         <div className="etic-header__bar">
         <Link href="/" className="etic-header__logo">
@@ -158,6 +258,10 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
             onClick={() => {
               setSearchOpen((open) => !open);
               setNavOpen(false);
+              if (searchOpen) {
+                setSearchQuery("");
+                setSuggestions([]);
+              }
             }}
           >
             <IconSearch />
@@ -186,7 +290,7 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
             aria-expanded={navOpen}
             onClick={() => {
               setNavOpen((open) => !open);
-              setSearchOpen(false);
+              closeSearch();
             }}
           >
             <IconMenu />
@@ -210,16 +314,52 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
             ))}
         </div>
         {searchOpen ? (
-          <div className="etic-search">
-            <form onSubmit={search} className="etic-search__form">
-              <input type="search" name="q" placeholder="Ara" autoComplete="off" autoFocus />
-              <button type="submit" className="etic-search__submit">
-                Ara
-              </button>
-              <button type="button" className="etic-search__close" onClick={() => setSearchOpen(false)}>
-                Kapat
-              </button>
-            </form>
+          <div ref={searchRef} className="etic-search-layer" data-etic-search>
+            <button type="button" className="etic-search-layer__backdrop" aria-label="Aramayı kapat" onClick={closeSearch} />
+            <div className="etic-search-layer__panel">
+              <form onSubmit={search} className="etic-search__form">
+                <label className="etic-search__label" htmlFor="etic-search-input">
+                  Ürün ara
+                </label>
+                <input
+                  id="etic-search-input"
+                  type="search"
+                  name="q"
+                  value={searchQuery}
+                  onChange={(event) => onSearchInput(event.target.value)}
+                  placeholder="Ne aramıştınız?"
+                  autoComplete="off"
+                  enterKeyHint="search"
+                />
+                <button type="submit" className="etic-search__submit">
+                  Ara
+                </button>
+                <button type="button" className="etic-search__close" aria-label="Kapat" onClick={closeSearch}>
+                  <IconClose />
+                </button>
+              </form>
+              {suggestions.length > 0 ? (
+                <div className="etic-search-suggestions">
+                  <p className="etic-search-suggestions__label">Öneriler</p>
+                  <ul className="etic-search-suggestions__list">
+                    {suggestions.map((item) => (
+                      <li key={item.id} className="etic-search-suggestions__item">
+                        <Link href={item.url} onClick={closeSearch}>
+                          {item.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img className="etic-search-suggestions__thumb" src={item.image} alt="" loading="lazy" />
+                          ) : (
+                            <span className="etic-search-suggestions__thumb" aria-hidden="true" />
+                          )}
+                          <span className="etic-search-suggestions__name">{item.name}</span>
+                          {item.price ? <span className="etic-search-suggestions__price">{item.price}</span> : null}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </header>

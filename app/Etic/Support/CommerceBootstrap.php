@@ -359,6 +359,25 @@ class CommerceBootstrap
 
     public function cms(): void
     {
+        $channelId = Channel::query()->where('handle', config('etic.store.handle'))->value('id');
+        $store = Store::query()->where('handle', config('etic.store.handle'))->first();
+
+        if ($store) {
+            $this->provisionStoreDefaults($store);
+        } elseif ($channelId) {
+            $this->provisionStoreDefaultsForChannel($channelId, (string) config('etic.store.name', 'Etic Commerce'));
+        }
+    }
+
+    public function provisionStoreDefaults(Store $store): void
+    {
+        $this->provisionStoreDefaultsForChannel($store->channel()->id, $store->name, $store->handle);
+    }
+
+    public function provisionStoreDefaultsForChannel(int $channelId, string $storeName, ?string $channelHandle = null): void
+    {
+        $channelHandle ??= Channel::query()->whereKey($channelId)->value('handle');
+
         $pages = [
             'anasayfa' => 'Ana Sayfa',
             'hakkimizda' => 'Hakkımızda',
@@ -369,8 +388,6 @@ class CommerceBootstrap
             'kargo' => 'Kargo',
             'iade' => 'İade',
         ];
-
-        $channelId = Channel::query()->where('handle', config('etic.store.handle'))->value('id');
 
         foreach ($pages as $slug => $title) {
             $page = Page::query()->firstOrCreate(
@@ -395,7 +412,7 @@ class CommerceBootstrap
             }
 
             $page->seo()->firstOrCreate([], [
-                'title' => $title.' | Etic Commerce',
+                'title' => $title.' | '.$storeName,
                 'description' => $title.' sayfası',
                 'robots' => 'index,follow',
             ]);
@@ -441,7 +458,7 @@ class CommerceBootstrap
 
         StoreSetting::query()->firstOrCreate(
             [
-                'channel_handle' => config('etic.store.handle'),
+                'channel_handle' => $channelHandle ?? config('etic.store.handle'),
                 'group' => 'theme',
                 'key' => 'values',
             ],

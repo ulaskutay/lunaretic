@@ -75,5 +75,6 @@ rsync -az --no-owner --no-group --delete \
 info "Sunucu kurulumu"
 ssh "$REMOTE_HOST" "REMOTE_OWNER='$REMOTE_OWNER' PHP_BIN='$PHP_BIN' DEPLOY_STOREFRONT='$DEPLOY_STOREFRONT' bash '$REMOTE_PATH/scripts/server-setup.sh'"
 
-info "Bitti. http://SERVER_IP  |  admin: http://SERVER_IP/lunar"
+info "Bitti."
+info "IP: http://${SERVER_IP:-SUNUCU_IP}  |  Admin: /lunar"
 info "Docs: DEPLOY.md"

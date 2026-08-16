@@ -2,7 +2,9 @@
 
 namespace App\Etic\Catalog\Models;
 
+use App\Etic\Search\ProductIndexer;
 use Lunar\Models\Product as LunarProduct;
+use Lunar\Search\ScoutIndexer;
 
 class Product extends LunarProduct
 {
@@ -23,4 +25,11 @@ class Product extends LunarProduct
     protected $attributes = [
         'status' => 'published',
     ];
+
+    public function indexer()
+    {
+        $config = config('lunar.search.indexers', []);
+
+        return app($config[static::class] ?? ScoutIndexer::class);
+    }
 }

@@ -19,7 +19,7 @@ final class CheckoutPayload
             'postcode' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'shipping' => ['nullable', 'string'],
-            'payment' => ['required', 'in:cash-in-hand,iyzico'],
+            'payment' => ['required', 'in:cash-in-hand,iyzico,paytr'],
             'payment_token' => ['nullable', 'string'],
             'same_as_shipping' => ['nullable', 'boolean'],
             'billing_first_name' => ['required_if:same_as_shipping,0', 'required_if:same_as_shipping,false', 'nullable', 'string', 'max:80'],
@@ -46,5 +46,13 @@ final class CheckoutPayload
     public static function isCorporateBilling(array $payload): bool
     {
         return filter_var($payload['billing_is_corporate'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /** @return array<string, mixed> */
+    public static function paytrRules(): array
+    {
+        return array_merge(self::rules(), [
+            'payment' => ['required', 'in:paytr'],
+        ]);
     }
 }

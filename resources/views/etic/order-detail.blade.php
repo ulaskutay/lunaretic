@@ -11,6 +11,7 @@
         || $billing->tax_identifier
     );
     $taxOffice = data_get($billing?->meta, 'tax_office');
+    $tracking = \App\Etic\Integrations\Shipping\ShipmentTracking::fromMeta((array) $order->meta);
 @endphp
 
 <div class="etic-order-detail">
@@ -85,6 +86,21 @@
                         @endif
                         <p>{{ trim(collect([$billing->state, $billing->city, $billing->postcode])->filter()->implode(', ')) }}</p>
                     </address>
+                </section>
+            @endif
+
+            @if($tracking)
+                <section class="etic-order-detail__card">
+                    <h3 class="etic-order-detail__title">Kargo takibi</h3>
+                    <p class="etic-order-detail__address-meta">
+                        Takip no: <strong>{{ $tracking['tracking_number'] }}</strong>
+                        @if($tracking['status'])
+                            <br>{{ $tracking['status'] }}
+                        @endif
+                    </p>
+                    @if($tracking['tracking_url'])
+                        <p><a href="{{ $tracking['tracking_url'] }}" target="_blank" rel="noopener">{{ $tracking['carrier_label'] }}’da takip et</a></p>
+                    @endif
                 </section>
             @endif
         </div>

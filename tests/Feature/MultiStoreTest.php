@@ -109,10 +109,17 @@ it('keeps payment credentials isolated per store', function () {
         'secret_key' => 'second-secret',
         'base_url' => 'https://sandbox-api.iyzipay.com',
     ]);
+    app(PaymentCredentials::class)->savePaytr([
+        'merchant_id' => 'second-merchant',
+        'merchant_key' => 'second-paytr-key',
+        'merchant_salt' => 'second-paytr-salt',
+    ]);
 
     $context->bindByHandle('boxers');
-    expect(app(PaymentCredentials::class)->iyzico()['api_key'])->not->toBe('second-key');
+    expect(app(PaymentCredentials::class)->iyzico()['api_key'])->not->toBe('second-key')
+        ->and(app(PaymentCredentials::class)->paytr()['merchant_id'])->not->toBe('second-merchant');
 
     $context->bind($second);
-    expect(app(PaymentCredentials::class)->iyzico()['api_key'])->toBe('second-key');
+    expect(app(PaymentCredentials::class)->iyzico()['api_key'])->toBe('second-key')
+        ->and(app(PaymentCredentials::class)->paytr()['merchant_id'])->toBe('second-merchant');
 });

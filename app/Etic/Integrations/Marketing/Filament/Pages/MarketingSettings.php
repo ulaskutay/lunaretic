@@ -65,6 +65,7 @@ class MarketingSettings extends Page
             Select::make('store_handle')
                 ->label(__('etic.filament.stores.label'))
                 ->options(fn () => Store::query()->orderBy('name')->pluck('name', 'handle'))
+                ->visible(fn () => Store::query()->count() > 1)
                 ->live()
                 ->afterStateUpdated(fn (?string $state) => $this->fillFromStore($state))
                 ->dehydrated(false),

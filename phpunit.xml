@@ -42,5 +42,7 @@
         <env name="APP_LOCALE" value="tr"/>
         <env name="APP_FALLBACK_LOCALE" value="tr"/>
         <env name="APP_URL" value="http://localhost"/>
+        <env name="ETIC_PLATFORM_ENABLED" value="true"/>
+        <env name="ETIC_PLATFORM_DOMAIN" value="eticcommerce.test"/>
     </php>
 </phpunit>

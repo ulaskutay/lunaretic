@@ -24,7 +24,7 @@ export function PageShell({ bootstrap, children }: { bootstrap: Bootstrap; child
         : authPage
           ? "etic-main etic-main--auth min-h-[70vh]"
         : catalogPage
-        ? `etic-main etic-main--catalog mx-auto min-h-[70vh] px-4 py-8 ${wide ? "max-w-7xl" : "max-w-6xl"}`
+        ? "etic-main etic-main--catalog min-h-[70vh]"
         : `etic-main mx-auto min-h-[70vh] px-4 py-8 ${wide ? "max-w-7xl" : "max-w-6xl"}`;
 
   return (
