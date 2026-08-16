@@ -1,14 +1,23 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { OrderSuccess } from "@/components/order-success";
 import { storeApi } from "@/lib/api";
+
+export const metadata: Metadata = {
+  title: "Siparişiniz alındı",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function SuccessPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = await storeApi.order(id);
 
-  return (
-    <>
-      <h1 className="text-2xl font-semibold">Siparişiniz alındı</h1>
-      <p className="mt-4">Sipariş no: {order.reference ?? order.id}</p>
-      <p className="mt-2 text-sm text-neutral-600">Durum: {order.status_label}</p>
-    </>
-  );
+  const order = await storeApi.order(id).catch(() => null);
+  if (!order) {
+    notFound();
+  }
+
+  return <OrderSuccess order={order} />;
 }

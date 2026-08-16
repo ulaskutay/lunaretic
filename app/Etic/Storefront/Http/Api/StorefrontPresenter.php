@@ -225,13 +225,68 @@ class StorefrontPresenter
     /** @return array<string, mixed> */
     public function order(Order $order): array
     {
+        $shipping = $order->shippingAddress;
+        $billing = $order->billingAddress;
+
         return [
             'id' => $order->id,
             'reference' => $order->reference,
             'status' => $order->status,
             'status_label' => OrderStatusScenario::label((string) $order->status),
+            'status_message' => $this->orderStatusMessage((string) $order->status),
+            'created_at' => $order->created_at?->toIso8601String(),
+            'subtotal' => $this->money($order->sub_total),
+            'discount_total' => $this->money($order->discount_total),
+            'shipping_total' => $this->money($order->shipping_total),
+            'tax_total' => $this->money($order->tax_total),
             'total' => $this->money($order->total),
             'currency' => $order->currency_code ?: 'TRY',
+            'shipping_address' => $this->orderAddress($shipping),
+            'billing_address' => $this->orderAddress($billing),
+            'lines' => $order->productLines
+                ->filter(fn ($line) => filled($line->purchasable_id))
+                ->map(fn ($line) => [
+                    'id' => $line->id,
+                    'description' => $line->description,
+                    'quantity' => $line->quantity,
+                    'total' => $this->money($line->total),
+                    'image' => $this->absolute(ProductImage::url($line->purchasable, 'small')),
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    private function orderStatusMessage(string $status): string
+    {
+        return match ($status) {
+            OrderStatusScenario::PAYMENT_OFFLINE => 'Siparişiniz kaydedildi. Kapıda ödeme veya havale talimatları e-posta ile iletilecektir.',
+            OrderStatusScenario::AWAITING_PAYMENT => 'Ödeme onayı bekleniyor. Onaylandığında siparişiniz hazırlanmaya başlanacaktır.',
+            OrderStatusScenario::PAYMENT_RECEIVED => 'Ödemeniz alındı. Siparişiniz kısa süre içinde hazırlanmaya başlanacaktır.',
+            default => 'Sipariş detayları e-posta ile paylaşılacaktır. Hesabınızdan sipariş durumunu takip edebilirsiniz.',
+        };
+    }
+
+    /** @return array<string, mixed>|null */
+    private function orderAddress(mixed $address): ?array
+    {
+        if (! $address) {
+            return null;
+        }
+
+        return [
+            'first_name' => $address->first_name,
+            'last_name' => $address->last_name,
+            'company_name' => $address->company_name,
+            'line_one' => $address->line_one,
+            'line_two' => $address->line_two,
+            'city' => $address->city,
+            'state' => $address->state,
+            'postcode' => $address->postcode,
+            'contact_phone' => $address->contact_phone,
+            'contact_email' => $address->contact_email,
+            'tax_identifier' => $address->tax_identifier,
+            'tax_office' => data_get($address->meta, 'tax_office'),
         ];
     }
 

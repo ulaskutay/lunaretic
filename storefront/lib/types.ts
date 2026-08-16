@@ -250,14 +250,45 @@ export type ShippingOption = {
   price: Money | null;
 };
 
+export type OrderAddress = {
+  first_name: string | null;
+  last_name: string | null;
+  company_name: string | null;
+  line_one: string | null;
+  line_two: string | null;
+  city: string | null;
+  state: string | null;
+  postcode: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  tax_identifier: string | null;
+  tax_office: string | null;
+};
+
+export type OrderLine = {
+  id: number;
+  description: string;
+  quantity: number;
+  total: Money | null;
+  image: string | null;
+};
+
 export type Order = {
   id: number;
   reference: string | null;
   status: string;
   status_label: string;
+  status_message?: string;
   created_at?: string | null;
+  subtotal?: Money | null;
+  discount_total?: Money | null;
+  shipping_total?: Money | null;
+  tax_total?: Money | null;
   total: Money | null;
   currency: string;
+  shipping_address?: OrderAddress | null;
+  billing_address?: OrderAddress | null;
+  lines?: OrderLine[];
 };
 
 export type TrackingEvent = {

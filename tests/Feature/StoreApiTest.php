@@ -129,7 +129,7 @@ it('places an order through the storefront api', function () {
         'quantity' => 1,
     ])->json('data.token');
 
-    $this->withHeader('X-Cart-Token', $token)
+    $response = $this->withHeader('X-Cart-Token', $token)
         ->postJson('/api/v1/checkout', [
             'first_name' => 'Ali',
             'last_name' => 'Yılmaz',
@@ -141,7 +141,24 @@ it('places an order through the storefront api', function () {
         ])
         ->assertCreated()
         ->assertJsonPath('data.status', 'payment-offline')
-        ->assertJsonStructure(['data' => ['id', 'reference'], 'events']);
+        ->assertJsonStructure([
+            'data' => [
+                'id',
+                'reference',
+                'status_message',
+                'shipping_address',
+                'lines',
+            ],
+            'events',
+        ]);
+
+    $orderId = $response->json('data.id');
+
+    $this->getJson("/api/v1/orders/{$orderId}")
+        ->assertOk()
+        ->assertJsonPath('data.id', $orderId)
+        ->assertJsonPath('data.lines.0.quantity', 1)
+        ->assertJsonPath('data.shipping_address.city', 'İstanbul');
 });
 
 it('registers and returns account orders over the storefront api', function () {

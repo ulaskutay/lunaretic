@@ -99,6 +99,12 @@ class CartApiController
 
     public function order(Order $order): JsonResponse
     {
+        $order->loadMissing([
+            'productLines.purchasable.product',
+            'shippingAddress',
+            'billingAddress',
+        ]);
+
         return response()->json(['data' => $this->present->order($order)]);
     }
 
