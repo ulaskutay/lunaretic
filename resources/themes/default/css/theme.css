@@ -450,6 +450,53 @@ body:has(.etic-catalog),
     background: #fff;
 }
 
+.etic-catalog-default__toggle {
+    min-height: 2.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    background: #fff;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.etic-catalog-default__categories {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.etic-catalog-default__categories::-webkit-scrollbar {
+    display: none;
+}
+
+.etic-catalog-default__categories a {
+    flex: 0 0 auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 0.5rem 0.85rem;
+    color: #6b7280;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.etic-catalog-default__categories a.is-active {
+    border-color: #111827;
+    background: #111827;
+    color: #fff;
+}
+
+@media (max-width: 767px) {
+    .etic-catalog-default__filters.is-open {
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+}
+
 .etic-checkout {
   --etic-checkout-accent: var(--etic-color-primary, #1a1a1a);
   --etic-checkout-accent-fg: var(--etic-color-primary-text, #ffffff);

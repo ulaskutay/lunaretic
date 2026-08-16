@@ -116,20 +116,44 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('click', (event) => {
     const filterToggle = event.target.closest('[data-catalog-filter-toggle]');
+    const filterClose = event.target.closest('[data-catalog-filter-close]');
     const gridToggle = event.target.closest('[data-catalog-grid]');
-    const root = (filterToggle || gridToggle)?.closest('[data-etic-catalog]');
+    const root = (filterToggle || filterClose || gridToggle)?.closest('[data-etic-catalog]');
 
     if (! root) {
         return;
     }
 
-    if (filterToggle) {
-        const hidden = root.classList.toggle('is-filters-hidden');
-        filterToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+    const mobile = window.matchMedia('(max-width: 899px)').matches;
 
-        const label = filterToggle.querySelector('[data-catalog-filter-label]');
+    if (filterToggle) {
+        if (mobile) {
+            const open = ! document.body.classList.contains('etic-catalog-filters-lock');
+            document.body.classList.toggle('etic-catalog-filters-lock', open);
+            filterToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+            const label = filterToggle.querySelector('[data-catalog-filter-label]');
+            if (label) {
+                label.textContent = open ? 'Filtreleri kapat' : 'Filtreler';
+            }
+        } else {
+            const hidden = root.classList.toggle('is-filters-hidden');
+            filterToggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+
+            const label = filterToggle.querySelector('[data-catalog-filter-label]');
+            if (label) {
+                label.textContent = hidden ? 'Filtreleri göster' : 'Filtreleri gizle';
+            }
+        }
+    }
+
+    if (filterClose) {
+        document.body.classList.remove('etic-catalog-filters-lock');
+        const toggle = root.querySelector('[data-catalog-filter-toggle]');
+        toggle?.setAttribute('aria-expanded', 'false');
+        const label = toggle?.querySelector('[data-catalog-filter-label]');
         if (label) {
-            label.textContent = hidden ? 'Filtreleri göster' : 'Filtreleri gizle';
+            label.textContent = 'Filtreler';
         }
     }
 
@@ -140,6 +164,12 @@ document.addEventListener('click', (event) => {
             button.classList.toggle('is-active', active);
             button.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        document.body.classList.remove('etic-catalog-filters-lock');
     }
 });
 

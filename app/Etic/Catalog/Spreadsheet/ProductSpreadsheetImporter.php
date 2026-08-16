@@ -4,6 +4,7 @@ namespace App\Etic\Catalog\Spreadsheet;
 
 use App\Etic\Media\Jobs\AttachRemoteProductImagesJob;
 use App\Etic\Support\StoreContext;
+use App\Etic\Support\TaxClassResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lunar\FieldTypes\TranslatedText;
@@ -51,6 +52,7 @@ class ProductSpreadsheetImporter
     public function __construct(
         private TrendyolWorkbook $workbook,
         private StoreContext $store,
+        private TaxClassResolver $taxClasses,
     ) {}
 
     /**
@@ -429,10 +431,7 @@ class ProductSpreadsheetImporter
 
     private function taxClass(?string $vat): TaxClass
     {
-        return TaxClass::getDefault() ?? TaxClass::query()->firstOrCreate(
-            ['name' => 'KDV'.($vat ? ' %'.$vat : '')],
-            ['default' => true]
-        );
+        return $this->taxClasses->resolve($vat);
     }
 
     private function descriptionHtml(?string $text): string

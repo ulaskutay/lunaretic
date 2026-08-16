@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { storeApi } from "@/lib/api";
 import { ProductCard } from "@/components/product-card";
-import { CatalogFilters } from "@/components/catalog-filters";
-import { CatalogToolbar } from "@/components/catalog-toolbar";
+import { CatalogCategoryBar } from "@/components/catalog-category-bar";
+import { CatalogInteractive } from "@/components/catalog-interactive";
 
 type Search = Record<string, string | string[] | undefined>;
 
@@ -47,23 +47,17 @@ export default async function CatalogPage({
         <span>{catalog.meta.total} ürün</span>
       </header>
 
-      <CatalogToolbar current={search} collectionSlug={collection} />
+      <CatalogCategoryBar collections={catalog.collections} collectionSlug={collection} />
 
-      <div className="etic-catalog__layout">
-        <CatalogFilters
-          facets={catalog.facets}
-          collections={catalog.collections}
-          current={search}
-          collectionSlug={collection}
-        />
+      <CatalogInteractive facets={catalog.facets} collections={catalog.collections} current={search} collectionSlug={collection}>
         <div className="etic-catalog__results">
           <p className="etic-catalog__result-count">{firstItem}–{lastItem} / {catalog.meta.total}</p>
           <div className="etic-product-grid">
-          {catalog.data.length ? (
-            catalog.data.map((product) => <ProductCard key={product.id} product={product} />)
-          ) : (
-            <p className="col-span-full text-sm text-neutral-600">Ürün bulunamadı.</p>
-          )}
+            {catalog.data.length ? (
+              catalog.data.map((product) => <ProductCard key={product.id} product={product} />)
+            ) : (
+              <p className="col-span-full text-sm text-neutral-600">Ürün bulunamadı.</p>
+            )}
           </div>
           {catalog.meta.last_page > 1 ? (
             <div className="etic-catalog__pagination">
@@ -79,7 +73,7 @@ export default async function CatalogPage({
             </div>
           ) : null}
         </div>
-      </div>
+      </CatalogInteractive>
     </section>
   );
 }

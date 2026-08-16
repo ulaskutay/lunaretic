@@ -31,7 +31,7 @@
 >
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>{{ $seoTitle ?? $eticStore->name() }}</title>
     <meta name="description" content="{{ $seoDescription ?? 'Türk pazarına özel e-ticaret.' }}">
     <link rel="icon" href="{{ $favicon }}">
@@ -58,7 +58,7 @@
         'etic-main--catalog' => $isCatalog && ! $flush && ! $pdp,
         'etic-main--cart' => $isCart,
         'etic-main--auth' => $isAuth,
-        'mx-auto px-4 py-10 '.theme()->containerClass() => ! $flush && ! $pdp && ! $isCart && ! $isAuth,
+        'mx-auto px-4 py-10 '.theme()->containerClass() => ! $flush && ! $pdp && ! $isCatalog && ! $isCart && ! $isAuth,
     ])>
         @if(session('status'))
             <p class="mb-4 rounded bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>

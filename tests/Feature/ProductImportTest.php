@@ -150,6 +150,37 @@ it('recreates products that were deleted before the same excel is imported again
         ->and($restored->variants->first()->trashed())->toBeFalse();
 });
 
+it('applies the vat rate from excel when calculating cart tax', function () {
+    $path = app(TrendyolWorkbook::class)->write([[
+        'sku' => 'ASK-TNK-VAT20-36',
+        'model_code' => 'ASK-TNK-VAT20',
+        'color' => 'Yeşil',
+        'size' => '36-38',
+        'brand' => 'Asya Karen',
+        'name' => 'KDV Test Tunik',
+        'price' => '1490',
+        'stock' => '2',
+        'vat' => '20',
+    ]]);
+
+    app(ProductSpreadsheetImporter::class)->import($path);
+
+    $variant = ProductVariant::query()->where('sku', 'ASK-TNK-VAT20-36')->with('taxClass.taxRateAmounts')->firstOrFail();
+    $rate = $variant->taxClass->taxRateAmounts->first();
+
+    expect((float) $rate->percentage)->toBe(20.0);
+
+    $cart = \Lunar\Models\Cart::create([
+        'currency_id' => $variant->prices->first()->currency_id,
+        'channel_id' => app(\App\Etic\Support\StoreContext::class)->channel()->id,
+    ]);
+    $cart->add($variant, 1);
+    $cart = $cart->calculate();
+
+    expect((int) $cart->total->value)->toBe(149000)
+        ->and((int) $cart->taxTotal->value)->toBe(24833);
+});
+
 it('updates stock and price for an existing barcode', function () {
     $workbook = app(TrendyolWorkbook::class);
     $first = $workbook->write([[

@@ -3,7 +3,7 @@ import { StoreProvider } from "@/lib/store";
 import { PageShell } from "@/components/page-shell";
 import { Tracking } from "@/components/tracking";
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { Bootstrap } from "@/lib/types";
 import type { CSSProperties } from "react";
 
@@ -17,6 +17,14 @@ export const metadata: Metadata = {
     shortcut: "/favicon.svg",
     apple: "/favicon.svg",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 const fallbackBootstrap: Bootstrap = {

@@ -31,9 +31,8 @@ use Lunar\Models\ProductOptionValue;
 use Lunar\Models\ProductType;
 use Lunar\Models\ProductVariant;
 use Lunar\Models\TaxClass;
-use Lunar\Models\TaxRate;
-use Lunar\Models\TaxRateAmount;
 use Lunar\Models\TaxZone;
+use App\Etic\Support\TaxClassResolver;
 
 class CommerceBootstrap
 {
@@ -122,11 +121,6 @@ class CommerceBootstrap
             ]
         );
 
-        $taxClass = TaxClass::query()->firstOrCreate(
-            ['name' => 'KDV'],
-            ['default' => true]
-        );
-
         $taxZone = TaxZone::query()->firstOrCreate(
             ['name' => 'Türkiye'],
             [
@@ -147,17 +141,8 @@ class CommerceBootstrap
 
         $taxZone->countries()->firstOrCreate(['country_id' => $country->id]);
 
-        $taxRate = TaxRate::query()->firstOrCreate(
-            ['name' => 'KDV %10', 'tax_zone_id' => $taxZone->id],
-            ['priority' => 1]
-        );
-
-        TaxRateAmount::query()->firstOrCreate(
-            [
-                'tax_rate_id' => $taxRate->id,
-                'tax_class_id' => $taxClass->id,
-            ],
-            ['percentage' => 10]
+        $taxClass = app(TaxClassResolver::class)->forPercentage(
+            (int) config('etic.tax.default_rate', 10)
         );
 
         if (! Attribute::query()->where('handle', 'name')->exists()) {

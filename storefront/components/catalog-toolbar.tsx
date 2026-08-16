@@ -1,26 +1,52 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Search = Record<string, string | string[] | undefined>;
+
+function catalogRoot(element: HTMLElement) {
+  return element.closest<HTMLElement>("[data-etic-catalog]");
+}
+
+function setBodyLock(locked: boolean) {
+  document.body.classList.toggle("etic-catalog-filters-lock", locked);
+}
 
 export function CatalogToolbar({
   current,
   collectionSlug,
+  onToggleFilters,
+  filtersOpen,
 }: {
   current: Search;
   collectionSlug?: string;
+  onToggleFilters?: () => void;
+  filtersOpen?: boolean;
 }) {
   const router = useRouter();
   const [filtersVisible, setFiltersVisible] = useState(true);
   const [columns, setColumns] = useState(3);
+  const [mobile, setMobile] = useState(false);
 
-  function catalogRoot(element: HTMLElement) {
-    return element.closest<HTMLElement>("[data-etic-catalog]");
-  }
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 899px)");
+    const sync = () => setMobile(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    return () => setBodyLock(false);
+  }, []);
 
   function toggleFilters(element: HTMLButtonElement) {
+    if (mobile) {
+      onToggleFilters?.();
+      return;
+    }
+
     const visible = !filtersVisible;
     setFiltersVisible(visible);
     catalogRoot(element)?.classList.toggle("is-filters-hidden", !visible);
@@ -41,15 +67,23 @@ export function CatalogToolbar({
     router.push(`${collectionSlug ? `/koleksiyon/${collectionSlug}` : "/koleksiyon"}?${params.toString()}`);
   }
 
+  const filterLabel = mobile
+    ? filtersOpen
+      ? "Filtreleri kapat"
+      : "Filtreler"
+    : filtersVisible
+      ? "Filtreleri gizle"
+      : "Filtreleri göster";
+
   return (
     <div className="etic-catalog__controls">
       <button
         type="button"
         className="etic-catalog__control"
-        aria-expanded={filtersVisible}
+        aria-expanded={mobile ? Boolean(filtersOpen) : filtersVisible}
         onClick={(event) => toggleFilters(event.currentTarget)}
       >
-        <span>{filtersVisible ? "Filtreleri gizle" : "Filtreleri göster"}</span>
+        <span>{filterLabel}</span>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10m-7 6h4" /></svg>
       </button>
       <label className="etic-catalog__sort">
@@ -77,4 +111,34 @@ export function CatalogToolbar({
       </div>
     </div>
   );
+}
+
+export function useCatalogFilterDrawer() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setBodyLock(open);
+    return () => setBodyLock(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  return {
+    open,
+    toggle: () => setOpen((value) => !value),
+    close: () => setOpen(false),
+  };
 }

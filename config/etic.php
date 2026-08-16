@@ -11,6 +11,11 @@ return [
 
     'theme' => env('ETIC_THEME', 'default'),
 
+    'tax' => [
+        // Excel'de KDV oranı boşsa veya ürün panelden eklenirse kullanılır.
+        'default_rate' => (int) env('ETIC_DEFAULT_VAT_RATE', 10),
+    ],
+
     'tenancy' => [
         'fallback_to_default' => true,
     ],
