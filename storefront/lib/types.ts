@@ -255,6 +255,7 @@ export type Order = {
   reference: string | null;
   status: string;
   status_label: string;
+  created_at?: string | null;
   total: Money | null;
   currency: string;
 };

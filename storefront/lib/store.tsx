@@ -2,12 +2,13 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { storeApi } from "./api";
-import type { Cart, TrackingEvent } from "./types";
+import type { Bootstrap, Cart, TrackingEvent } from "./types";
 
 const CART_KEY = "etic_cart_token";
 const AUTH_KEY = "etic_auth_token";
 
 type StoreContextValue = {
+  bootstrap: Bootstrap;
   cart: Cart | null;
   cartCount: number;
   token: string | null;
@@ -44,7 +45,7 @@ function write(key: string, value: string | null) {
   }
 }
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
+export function StoreProvider({ bootstrap, children }: { bootstrap: Bootstrap; children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [authToken, setAuthTokenState] = useState<string | null>(null);
@@ -120,6 +121,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<StoreContextValue>(
     () => ({
+      bootstrap,
       cart,
       cartCount: cart?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0,
       token,
@@ -133,7 +135,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setAuthToken,
       clearCartToken,
     }),
-    [addToCart, applyCoupon, authToken, cart, clearCartToken, refreshCart, removeCoupon, removeLine, setAuthToken, token, updateLine],
+    [addToCart, applyCoupon, authToken, bootstrap, cart, clearCartToken, refreshCart, removeCoupon, removeLine, setAuthToken, token, updateLine],
   );
 
   return <StorefrontContext.Provider value={value}>{children}</StorefrontContext.Provider>;

@@ -91,7 +91,7 @@ export default function AccountPage() {
                         ) : null}
                       </div>
                       <span className="etic-account__order-status">{order.status_label}</span>
-                      {order.total ? <p className="etic-account__order-total">{order.total}</p> : null}
+                      {order.total ? <p className="etic-account__order-total">{order.total.formatted}</p> : null}
                       <span className="etic-account__order-action" aria-hidden="true">Detay →</span>
                     </Link>
                   </li>

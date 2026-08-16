@@ -99,7 +99,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ) : null}
       </head>
       <body>
-        <StoreProvider>
+        <StoreProvider bootstrap={bootstrap}>
           <Tracking config={bootstrap.tracking} />
           <PageShell bootstrap={bootstrap}>{children}</PageShell>
         </StoreProvider>
