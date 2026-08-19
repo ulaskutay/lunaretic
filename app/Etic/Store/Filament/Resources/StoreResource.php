@@ -4,14 +4,19 @@ namespace App\Etic\Store\Filament\Resources;
 
 use App\Etic\Store\Filament\Resources\StoreResource\Pages;
 use App\Etic\Store\Models\Store;
+use App\Etic\Store\Models\StoreAuditLog;
 use App\Etic\Theme\ThemeRegistry;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\TagsInput;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -22,7 +27,7 @@ class StoreResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-storefront';
 
-    protected static ?int $navigationSort = 28;
+    protected static ?int $navigationSort = 1;
 
     public static function getModelLabel(): string
     {
@@ -36,7 +41,14 @@ class StoreResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('lunarpanel::global.sections.settings');
+        return Filament::getCurrentOrDefaultPanel()?->getId() === 'platform'
+            ? __('etic.filament.nav.platform')
+            : __('lunarpanel::global.sections.settings');
+    }
+
+    public static function canAccess(): bool
+    {
+        return (bool) auth('staff')->user()?->admin;
     }
 
     public static function form(Schema $schema): Schema
@@ -51,14 +63,36 @@ class StoreResource extends Resource
                 ->required()
                 ->alphaDash()
                 ->maxLength(80)
-                ->unique(ignoreRecord: true),
+                ->unique(ignoreRecord: true)
+                ->disabledOn('edit')
+                ->helperText(__('etic.filament.stores.handle_help')),
+            Section::make(__('etic.filament.stores.login_section'))
+                ->description(__('etic.filament.stores.login_help'))
+                ->schema([
+                    Textarea::make('panel_members')
+                        ->label(__('etic.filament.stores.members'))
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->visibleOn('edit')
+                        ->rows(3),
+                    TextInput::make('owner_email')
+                        ->label(__('etic.filament.stores.owner_email'))
+                        ->email()
+                        ->required(fn (string $operation): bool => $operation === 'create')
+                        ->maxLength(191),
+                    TextInput::make('owner_password')
+                        ->label(__('etic.filament.stores.owner_password'))
+                        ->password()
+                        ->revealable()
+                        ->required(fn (string $operation): bool => $operation === 'create')
+                        ->minLength(8)
+                        ->helperText(__('etic.filament.stores.owner_password_help')),
+                ]),
             TextInput::make('primary_domain')
                 ->label(__('etic.filament.stores.primary_domain'))
-                ->placeholder('shop.example.com')
-                ->maxLength(191),
-            TagsInput::make('extra_domains')
-                ->label(__('etic.filament.stores.extra_domains'))
-                ->placeholder('www.example.com'),
+                ->placeholder('butik.eticcommerce.com')
+                ->maxLength(191)
+                ->helperText(__('etic.filament.stores.primary_domain_help')),
             Select::make('theme')
                 ->label(__('etic.filament.stores.theme'))
                 ->options(fn () => app(ThemeRegistry::class)->options())
@@ -105,6 +139,44 @@ class StoreResource extends Resource
                 ->label(__('etic.filament.stores.default'))
                 ->boolean(),
         ])->recordActions([
+            Action::make('impersonate')
+                ->label(__('etic.filament.stores.impersonate'))
+                ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
+                ->action(function (Store $record): mixed {
+                    StoreAuditLog::query()->create([
+                        'store_id' => $record->id,
+                        'staff_id' => auth('staff')->id(),
+                        'action' => 'impersonate',
+                        'meta' => ['ip' => request()->ip()],
+                    ]);
+
+                    return redirect()->away($record->adminUrl());
+                }),
+            Action::make('suspend')
+                ->label(__('etic.filament.stores.suspend'))
+                ->icon(Heroicon::OutlinedPause)
+                ->requiresConfirmation()
+                ->visible(fn (Store $record): bool => $record->is_active)
+                ->action(function (Store $record): void {
+                    $record->forceFill(['is_active' => false])->save();
+                    StoreAuditLog::query()->create([
+                        'store_id' => $record->id,
+                        'staff_id' => auth('staff')->id(),
+                        'action' => 'suspend',
+                    ]);
+                }),
+            Action::make('resume')
+                ->label(__('etic.filament.stores.resume'))
+                ->icon(Heroicon::OutlinedPlay)
+                ->visible(fn (Store $record): bool => ! $record->is_active)
+                ->action(function (Store $record): void {
+                    $record->forceFill(['is_active' => true, 'suspended_at' => null])->save();
+                    StoreAuditLog::query()->create([
+                        'store_id' => $record->id,
+                        'staff_id' => auth('staff')->id(),
+                        'action' => 'resume',
+                    ]);
+                }),
             EditAction::make(),
         ]);
     }

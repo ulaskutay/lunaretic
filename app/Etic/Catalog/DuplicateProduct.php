@@ -2,6 +2,8 @@
 
 namespace App\Etic\Catalog;
 
+use App\Etic\Catalog\AssignProductAvailability;
+use App\Etic\Support\StoreContext;
 use Illuminate\Support\Collection;
 use Lunar\Facades\DB;
 use Lunar\FieldTypes\Text;
@@ -71,8 +73,15 @@ class DuplicateProduct
 
     protected function syncRelations(ProductContract $product, Product $copy): void
     {
+        $channelId = app(StoreContext::class)->channelId();
+        $channels = $product->channels;
+
+        if ($channelId) {
+            $channels = $channels->where('id', $channelId);
+        }
+
         $copy->channels()->sync(
-            $product->channels->mapWithKeys(fn ($channel) => [
+            $channels->mapWithKeys(fn ($channel) => [
                 $channel->id => [
                     'enabled' => (bool) $channel->pivot->enabled,
                     'starts_at' => $channel->pivot->starts_at,
@@ -92,6 +101,10 @@ class DuplicateProduct
                 ],
             ])->all()
         );
+
+        if ($copy->customerGroups()->wherePivot('purchasable', true)->wherePivot('enabled', true)->doesntExist()) {
+            app(AssignProductAvailability::class)->handle($copy);
+        }
 
         $copy->collections()->sync(
             $product->collections->mapWithKeys(fn ($collection) => [

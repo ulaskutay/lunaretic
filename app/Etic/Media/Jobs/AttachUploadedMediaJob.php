@@ -4,6 +4,7 @@ namespace App\Etic\Media\Jobs;
 
 use App\Etic\Media\MediaLibraryUploader;
 use App\Etic\Support\StaffNotifier;
+use App\Etic\Support\StoreContext;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Queue\Queueable;
@@ -40,6 +41,8 @@ class AttachUploadedMediaJob implements ShouldQueue
             if (! $owner instanceof HasMedia) {
                 return;
             }
+
+            app(StoreContext::class)->bindFromModel($owner);
 
             $files = $this->absoluteFiles();
 

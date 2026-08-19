@@ -13,7 +13,7 @@ beforeEach(function () {
 it('exposes storefront bootstrap for the next.js client', function () {
     $this->getJson('/api/v1/bootstrap')
         ->assertOk()
-        ->assertJsonPath('data.store.handle', 'boxers')
+        ->assertJsonPath('data.store.handle', 'omnipanel')
         ->assertJsonStructure(['data' => ['store', 'menus', 'tracking', 'theme']]);
 });
 

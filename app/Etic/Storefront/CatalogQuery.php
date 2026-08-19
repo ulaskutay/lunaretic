@@ -2,18 +2,18 @@
 
 namespace App\Etic\Storefront;
 
+use App\Etic\Catalog\Models\Brand;
+use App\Etic\Catalog\Models\ProductOption;
 use App\Etic\Search\CatalogProductSearch;
 use App\Etic\Support\StoreContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection as SupportCollection;
-use Lunar\Models\Brand;
 use Lunar\Models\Collection;
 use Lunar\Models\Order;
 use Lunar\Models\OrderLine;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
-use Lunar\Models\ProductOption;
 use Lunar\Models\ProductVariant;
 use Lunar\Models\Url;
 
@@ -47,19 +47,11 @@ class CatalogQuery
         if (filled($filters->search)) {
             $searchIds = $this->productSearch->matchingProductIds($filters->search);
 
-            if ($searchIds !== null) {
-                if ($searchIds === []) {
-                    return $query->whereRaw('1 = 0')->paginate(12)->withQueryString();
-                }
-
-                $query->whereIn("{$productsTable}.id", $searchIds);
-            } else {
-                $search = $filters->search;
-                $query->where(function ($builder) use ($search) {
-                    $builder->whereHas('urls', fn ($urls) => $urls->where('slug', 'like', '%'.$search.'%'))
-                        ->orWhereHas('variants', fn ($variants) => $variants->where('sku', 'like', '%'.$search.'%'));
-                });
+            if ($searchIds === []) {
+                return $query->whereRaw('1 = 0')->paginate(12)->withQueryString();
             }
+
+            $query->whereIn("{$productsTable}.id", $searchIds);
         }
 
         if ($filters->brand) {

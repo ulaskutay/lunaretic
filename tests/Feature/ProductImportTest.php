@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Lunar\Admin\Models\Staff;
+use Lunar\Models\Cart;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
 
@@ -170,9 +171,9 @@ it('applies the vat rate from excel when calculating cart tax', function () {
 
     expect((float) $rate->percentage)->toBe(20.0);
 
-    $cart = \Lunar\Models\Cart::create([
+    $cart = Cart::create([
         'currency_id' => $variant->prices->first()->currency_id,
-        'channel_id' => app(\App\Etic\Support\StoreContext::class)->channel()->id,
+        'channel_id' => app(StoreContext::class)->channel()->id,
     ]);
     $cart->add($variant, 1);
     $cart = $cart->calculate();
@@ -350,7 +351,7 @@ it('notifies staff when a queued import finishes', function () {
     $stored = 'imports/job-'.uniqid('', true).'.xlsx';
     Storage::disk('local')->put($stored, (string) file_get_contents($source));
 
-    (new ImportProductsJob($stored, $staff->id, 'boxers'))->handle(
+    (new ImportProductsJob($stored, $staff->id, 'omnipanel'))->handle(
         app(ProductSpreadsheetImporter::class),
         app(StoreContext::class),
         app(StaffNotifier::class),
@@ -359,6 +360,33 @@ it('notifies staff when a queued import finishes', function () {
     expect(ProductVariant::query()->where('sku', 'ASK-JOB-01BJ-36')->exists())->toBeTrue()
         ->and(Storage::disk('local')->exists($stored))->toBeFalse()
         ->and($staff->fresh()->notifications)->toHaveCount(1);
+});
+
+it('lets guests add an imported sku to the cart', function () {
+    $path = app(TrendyolWorkbook::class)->write([[
+        'sku' => 'ASK-TNK-001SYH-40',
+        'model_code' => 'ASK-TNK-001',
+        'color' => 'Siyah',
+        'size' => '40',
+        'brand' => 'Asya Karen',
+        'name' => 'Kemerli Tunik',
+        'price' => '1490',
+        'stock' => '4',
+    ]]);
+
+    app(ProductSpreadsheetImporter::class)->import($path);
+
+    $variant = ProductVariant::query()->where('sku', 'ASK-TNK-001SYH-40')->firstOrFail();
+    $groupId = \App\Etic\Catalog\Models\CustomerGroup::getDefault()?->id;
+
+    expect($groupId)->not->toBeNull()
+        ->and($variant->product->customerGroups()->whereKey($groupId)->wherePivot('purchasable', true)->wherePivot('enabled', true)->exists())->toBeTrue();
+
+    $this->postJson('/api/v1/cart', [
+        'variant_id' => $variant->id,
+        'quantity' => 1,
+    ])->assertOk()
+        ->assertJsonPath('data.lines.0.sku', 'ASK-TNK-001SYH-40');
 });
 
 function testJpeg(): string

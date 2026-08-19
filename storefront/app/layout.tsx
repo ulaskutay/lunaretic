@@ -8,8 +8,6 @@ import type { Metadata, Viewport } from "next";
 import type { Bootstrap } from "@/lib/types";
 import type { CSSProperties } from "react";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
   title: "Etic Commerce",
   description: "Türk pazarına özel e-ticaret.",
@@ -30,7 +28,7 @@ export const viewport: Viewport = {
 };
 
 const fallbackBootstrap: Bootstrap = {
-  store: { name: "Etic Commerce", handle: "boxers", locale: "tr", currency: "TRY" },
+  store: { name: "Etic Commerce", handle: "omnipanel", locale: "tr", currency: "TRY" },
   menus: { header: [], footer: [] },
   tracking: {
     ga4_measurement_id: null,

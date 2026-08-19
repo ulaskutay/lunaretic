@@ -2,7 +2,7 @@
 
 namespace App\Etic\Support;
 
-use Lunar\Models\TaxClass;
+use App\Etic\Catalog\Models\TaxClass;
 use Lunar\Models\TaxRate;
 use Lunar\Models\TaxRateAmount;
 use Lunar\Models\TaxZone;
@@ -57,13 +57,13 @@ class TaxClassResolver
     {
         if ($percentage === $this->defaultPercentage()) {
             return TaxClass::query()->firstOrCreate(
-                ['name' => 'KDV'],
+                ['name' => 'KDV', 'store_id' => app(StoreContext::class)->store()?->id],
                 ['default' => true],
             );
         }
 
         return TaxClass::query()->firstOrCreate(
-            ['name' => 'KDV %'.$percentage],
+            ['name' => 'KDV %'.$percentage, 'store_id' => app(StoreContext::class)->store()?->id],
             ['default' => false],
         );
     }

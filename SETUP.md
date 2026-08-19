@@ -54,7 +54,7 @@ npm run dev
 |----------|---------|
 | `APP_URL` | Public URL. Production on IP: `http://x.x.x.x` |
 | `DB_*` | MySQL |
-| `ETIC_STORE_HANDLE` | Default Lunar channel / store handle (`boxers`) |
+| `ETIC_STORE_HANDLE` | Default Lunar channel / store handle (`omnipanel`) |
 | `ETIC_STOREFRONT_ORIGINS` | Next.js origin list for CORS (`http://localhost:3000`) |
 
 Mağazalar `/lunar` → Ayarlar → Mağazalar üzerinden eklenir. Host eşleşmezse varsayılan mağaza kullanılır. iyzico ve piksel kimlikleri mağaza bazında `etic_store_settings` içinde tutulur (`.env` yedek).
@@ -96,7 +96,7 @@ php artisan queue:work --timeout=900
 
 ## Search (Meilisearch)
 
-Storefront catalog search uses Laravel Scout via `lunarphp/search`. With `SCOUT_DRIVER=null` (default), search falls back to SQL slug/SKU matching.
+Storefront catalog search uses Laravel Scout. With `SCOUT_DRIVER=null` (default), search uses SQL (name, slug, SKU). Meilisearch queries use a short HTTP timeout and fall back to SQL if the engine is down.
 
 Local Meilisearch:
 

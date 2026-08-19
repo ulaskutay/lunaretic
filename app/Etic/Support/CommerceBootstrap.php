@@ -2,37 +2,37 @@
 
 namespace App\Etic\Support;
 
+use App\Etic\Catalog\Models\Attribute;
+use App\Etic\Catalog\Models\AttributeGroup;
+use App\Etic\Catalog\Models\Brand;
+use App\Etic\Catalog\Models\CollectionGroup;
+use App\Etic\Catalog\Models\CustomerGroup;
+use App\Etic\Catalog\Models\ProductOption;
+use App\Etic\Catalog\Models\ProductOptionValue;
+use App\Etic\Catalog\Models\ProductType;
+use App\Etic\Catalog\Models\TaxClass;
 use App\Etic\CMS\Models\BlogCategory;
 use App\Etic\CMS\Models\BlogPost;
 use App\Etic\CMS\Models\Menu;
 use App\Etic\CMS\Models\MenuItem;
 use App\Etic\CMS\Models\Page;
 use App\Etic\Store\Models\Store;
+use App\Etic\Store\Models\StoreMember;
 use App\Etic\Store\Models\StoreSetting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lunar\Admin\Models\Staff;
 use Lunar\DiscountTypes\AmountOff;
 use Lunar\FieldTypes\TranslatedText;
-use Lunar\Models\Attribute;
-use Lunar\Models\AttributeGroup;
-use Lunar\Models\Brand;
 use Lunar\Models\Channel;
 use Lunar\Models\Collection;
-use Lunar\Models\CollectionGroup;
 use Lunar\Models\Country;
 use Lunar\Models\Currency;
-use Lunar\Models\CustomerGroup;
 use Lunar\Models\Discount;
 use Lunar\Models\Language;
 use Lunar\Models\Product;
-use Lunar\Models\ProductOption;
-use Lunar\Models\ProductOptionValue;
-use Lunar\Models\ProductType;
 use Lunar\Models\ProductVariant;
-use Lunar\Models\TaxClass;
 use Lunar\Models\TaxZone;
-use App\Etic\Support\TaxClassResolver;
 
 class CommerceBootstrap
 {
@@ -58,9 +58,13 @@ class CommerceBootstrap
 
         Currency::query()->where('id', '!=', $currency->id)->update(['default' => false]);
 
-        $store = Store::query()->firstOrCreate(
-            ['handle' => config('etic.store.handle', 'boxers')],
-            [
+        $handle = (string) config('etic.store.handle', 'omnipanel');
+        $store = Store::query()->where('handle', $handle)->first()
+            ?? Store::query()->where('is_default', true)->first();
+
+        if (! $store) {
+            $store = Store::query()->create([
+                'handle' => $handle,
                 'name' => config('etic.store.name', 'Etic Commerce'),
                 'primary_domain' => Store::normalizeHost(parse_url((string) config('app.url'), PHP_URL_HOST)),
                 'theme' => (string) config('etic.theme', 'default'),
@@ -68,8 +72,8 @@ class CommerceBootstrap
                 'currency' => (string) config('etic.store.currency', 'TRY'),
                 'is_active' => true,
                 'is_default' => true,
-            ]
-        );
+            ]);
+        }
 
         $appHost = Store::normalizeHost((string) parse_url((string) config('app.url'), PHP_URL_HOST));
         $updates = [];
@@ -79,7 +83,7 @@ class CommerceBootstrap
             $updates['is_active'] = true;
         }
 
-        if ($appHost !== '' && filter_var($appHost, FILTER_VALIDATE_IP) && $store->primary_domain !== $appHost) {
+        if ($appHost !== '' && $store->primary_domain !== $appHost) {
             $updates['primary_domain'] = $appHost;
         }
 
@@ -89,6 +93,9 @@ class CommerceBootstrap
             $store->syncChannel();
         }
 
+        app(StoreContext::class)->bind($store);
+        $this->provisionCatalogDefaults($store);
+
         $channel = Channel::query()->where('handle', $store->handle)->firstOrFail();
 
         Channel::query()->where('id', '!=', $channel->id)->update(['default' => false]);
@@ -96,16 +103,6 @@ class CommerceBootstrap
         foreach (['etic_pages', 'etic_blog_posts', 'etic_menus', 'etic_blog_categories', 'etic_redirects'] as $table) {
             DB::table($table)->whereNull('channel_id')->update(['channel_id' => $channel->id]);
         }
-
-        CustomerGroup::query()->firstOrCreate(
-            ['handle' => 'retail'],
-            ['name' => 'Perakende', 'default' => true]
-        );
-
-        CollectionGroup::query()->firstOrCreate(
-            ['handle' => 'kategoriler'],
-            ['name' => 'Kategoriler']
-        );
 
         $country = Country::query()->firstOrCreate(
             ['iso2' => 'TR'],
@@ -141,16 +138,32 @@ class CommerceBootstrap
 
         $taxZone->countries()->firstOrCreate(['country_id' => $country->id]);
 
-        $taxClass = app(TaxClassResolver::class)->forPercentage(
+        app(TaxClassResolver::class)->forPercentage(
             (int) config('etic.tax.default_rate', 10)
         );
+    }
 
-        if (! Attribute::query()->where('handle', 'name')->exists()) {
+    public function provisionCatalogDefaults(Store $store): void
+    {
+        app(StoreContext::class)->bind($store);
+
+        CustomerGroup::query()->firstOrCreate(
+            ['handle' => 'retail', 'store_id' => $store->id],
+            ['name' => 'Perakende', 'default' => true]
+        );
+
+        CollectionGroup::query()->firstOrCreate(
+            ['handle' => 'kategoriler', 'store_id' => $store->id],
+            ['name' => 'Kategoriler']
+        );
+
+        if (Attribute::query()->where('handle', 'name')->where('attribute_type', Product::morphName())->doesntExist()) {
             $group = AttributeGroup::query()->create([
                 'attributable_type' => Product::morphName(),
                 'name' => collect(['tr' => 'Detaylar']),
                 'handle' => 'details',
                 'position' => 1,
+                'store_id' => $store->id,
             ]);
 
             $collectionGroup = AttributeGroup::query()->create([
@@ -158,6 +171,7 @@ class CommerceBootstrap
                 'name' => collect(['tr' => 'Detaylar']),
                 'handle' => 'collection_details',
                 'position' => 1,
+                'store_id' => $store->id,
             ]);
 
             foreach ([['name', 'Ad', false], ['description', 'Açıklama', true]] as [$handle, $label, $rich]) {
@@ -174,6 +188,7 @@ class CommerceBootstrap
                     'configuration' => ['richtext' => $rich],
                     'system' => $handle === 'name',
                     'description' => ['tr' => ''],
+                    'store_id' => $store->id,
                 ]);
 
                 Attribute::query()->create([
@@ -189,13 +204,34 @@ class CommerceBootstrap
                     'configuration' => ['richtext' => $rich],
                     'system' => $handle === 'name',
                     'description' => ['tr' => ''],
+                    'store_id' => $store->id,
                 ]);
             }
         }
 
-        $type = ProductType::query()->firstOrCreate(['name' => 'Boxer']);
+        $type = ProductType::query()->firstOrCreate(
+            ['name' => 'Ürün', 'store_id' => $store->id],
+        );
         $type->mappedAttributes()->sync(
             Attribute::query()->where('attribute_type', Product::morphName())->pluck('id')
+        );
+
+        ProductOption::query()->firstOrCreate(
+            ['handle' => 'color', 'store_id' => $store->id],
+            [
+                'name' => ['tr' => 'Renk'],
+                'label' => ['tr' => 'Renk'],
+                'shared' => true,
+            ]
+        );
+
+        ProductOption::query()->firstOrCreate(
+            ['handle' => 'size', 'store_id' => $store->id],
+            [
+                'name' => ['tr' => 'Beden'],
+                'label' => ['tr' => 'Beden'],
+                'shared' => true,
+            ]
         );
     }
 
@@ -203,7 +239,18 @@ class CommerceBootstrap
     {
         $this->foundation();
 
-        $brand = Brand::query()->firstOrCreate(['name' => 'Etic Boxer']);
+        $store = Store::query()->where('is_default', true)->first()
+            ?? Store::query()->where('handle', config('etic.store.handle', 'omnipanel'))->firstOrFail();
+
+        app(StoreContext::class)->bind($store);
+
+        $brand = Brand::query()->firstOrCreate(
+            ['name' => 'Etic Boxer', 'store_id' => $store->id],
+        );
+
+        ProductType::query()->firstOrCreate(
+            ['name' => 'Boxer', 'store_id' => $store->id],
+        );
 
         $group = CollectionGroup::query()->where('handle', 'kategoriler')->firstOrFail();
         $collection = Collection::query()->firstOrCreate(
@@ -226,23 +273,8 @@ class CommerceBootstrap
             ['default' => true]
         );
 
-        $color = ProductOption::query()->firstOrCreate(
-            ['handle' => 'color'],
-            [
-                'name' => ['tr' => 'Renk'],
-                'label' => ['tr' => 'Renk'],
-                'shared' => true,
-            ]
-        );
-
-        $size = ProductOption::query()->firstOrCreate(
-            ['handle' => 'size'],
-            [
-                'name' => ['tr' => 'Beden'],
-                'label' => ['tr' => 'Beden'],
-                'shared' => true,
-            ]
-        );
+        $color = ProductOption::query()->where('handle', 'color')->firstOrFail();
+        $size = ProductOption::query()->where('handle', 'size')->firstOrFail();
 
         $colors = collect(['Siyah', 'Beyaz', 'Gri'])->map(function (string $name, int $i) use ($color) {
             return ProductOptionValue::query()->firstOrCreate(
@@ -371,7 +403,10 @@ class CommerceBootstrap
 
     public function provisionStoreDefaults(Store $store): void
     {
-        $this->provisionStoreDefaultsForChannel($store->channel()->id, $store->name, $store->handle);
+        app(StoreContext::class)->withoutIsolation(function () use ($store): void {
+            $this->provisionCatalogDefaults($store);
+            $this->provisionStoreDefaultsForChannel($store->channel()->id, $store->name, $store->handle);
+        });
     }
 
     public function provisionStoreDefaultsForChannel(int $channelId, string $storeName, ?string $channelHandle = null): void
@@ -444,12 +479,12 @@ class CommerceBootstrap
         );
 
         BlogPost::query()->firstOrCreate(
-            ['slug' => 'boxer-rehberi', 'channel_id' => $channelId],
+            ['slug' => 'hos-geldiniz', 'channel_id' => $channelId],
             [
-                'title' => 'Doğru boxer nasıl seçilir?',
-                'excerpt' => 'Kumaş, beden ve konfor ipuçları.',
-                'content' => '<p>Boxer seçiminde kumaş ve beden uyumu önemlidir.</p>',
-                'author' => 'Etic Ajans',
+                'title' => 'Mağazanıza hoş geldiniz',
+                'excerpt' => 'Katalogunuzu ekleyerek vitrini doldurun.',
+                'content' => '<p>Bu mağaza ana vitrinden bağımsızdır. Ürün, koleksiyon ve tema buraya özeldir.</p>',
+                'author' => $storeName,
                 'published_at' => now(),
                 'is_published' => true,
                 'blog_category_id' => $category->id,
@@ -477,6 +512,16 @@ class CommerceBootstrap
                 'admin' => true,
             ]
         );
+
+        $store = Store::query()->where('is_default', true)->first();
+        $staff = Staff::query()->where('email', env('ADMIN_EMAIL', 'admin@eticcommerce.test'))->first();
+
+        if ($store && $staff) {
+            StoreMember::query()->withoutGlobalScopes()->firstOrCreate(
+                ['store_id' => $store->id, 'staff_id' => $staff->id],
+                ['role' => 'owner']
+            );
+        }
     }
 
     private function cmsPageTemplate(string $slug): string

@@ -1,8 +1,8 @@
 <?php
 
+use App\Etic\Catalog\Models\Brand as EticBrand;
 use App\Etic\Catalog\Models\Product as EticProduct;
 use App\Etic\Search\ProductIndexer;
-use Lunar\Models\Brand;
 use Lunar\Models\Collection;
 use Lunar\Models\Customer;
 use Lunar\Models\Order;
@@ -30,7 +30,7 @@ return [
         /*
          * These models are required by the system, do not change them.
          */
-        Brand::class,
+        EticBrand::class,
         Collection::class,
         Customer::class,
         Order::class,
@@ -65,7 +65,7 @@ return [
     ],
 
     'indexers' => [
-        Brand::class => BrandIndexer::class,
+        EticBrand::class => BrandIndexer::class,
         Collection::class => CollectionIndexer::class,
         Customer::class => CustomerIndexer::class,
         Order::class => OrderIndexer::class,

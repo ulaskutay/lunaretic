@@ -14,7 +14,7 @@ class EticMediaDefinitions extends StandardMediaDefinitions
     public function registerMediaConversions(HasMedia $model, ?Media $media = null): void
     {
         $this->configureConversion(
-            $model->addMediaConversion('small')->fit(Fit::Max, 480, 600),
+            $model->addMediaConversion('small')->fit(Fit::Max, 800, 1000),
             $media
         );
     }
@@ -22,9 +22,9 @@ class EticMediaDefinitions extends StandardMediaDefinitions
     protected function registerCollectionConversions(MediaCollection $collection, HasMedia $model): void
     {
         $conversions = [
-            'zoom' => [1600, 2000],
-            'large' => [1100, 1400],
-            'medium' => [800, 1000],
+            'zoom' => [2400, 3000],
+            'large' => [2000, 2500],
+            'medium' => [1400, 1750],
         ];
 
         $collection->registerMediaConversions(function (Media $media) use ($model, $conversions) {
@@ -39,16 +39,18 @@ class EticMediaDefinitions extends StandardMediaDefinitions
 
     private function configureConversion(Conversion $conversion, ?Media $media): void
     {
-        $conversion->quality(78)->deferred();
+        $quality = $conversion->getName() === 'zoom' ? 85 : 80;
 
-        $mime = (string) ($media?->mime_type ?? '');
+        $conversion->quality($quality)->deferred();
 
-        if (str_contains($mime, 'png') || str_contains($mime, 'gif') || str_contains($mime, 'webp')) {
+        $mime = strtolower((string) ($media?->mime_type ?? ''));
+
+        if (str_contains($mime, 'gif')) {
             $conversion->keepOriginalImageFormat();
 
             return;
         }
 
-        $conversion->format('jpg');
+        $conversion->format('webp');
     }
 }

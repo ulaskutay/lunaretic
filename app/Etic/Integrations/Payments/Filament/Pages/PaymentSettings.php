@@ -7,6 +7,7 @@ use App\Etic\Integrations\Payments\PaymentProviderCatalog;
 use App\Etic\Store\Models\Store;
 use App\Etic\Support\StoreContext;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -70,7 +71,7 @@ class PaymentSettings extends Page
             Select::make('store_handle')
                 ->label(__('etic.filament.stores.label'))
                 ->options(fn () => Store::query()->orderBy('name')->pluck('name', 'handle'))
-                ->visible(fn () => Store::query()->count() > 1)
+                ->visible(false)
                 ->live()
                 ->afterStateUpdated(fn (?string $state) => $this->fillFromStore($state))
                 ->dehydrated(false),
@@ -179,7 +180,7 @@ class PaymentSettings extends Page
     }
 
     /**
-     * @return array<string, list<\Filament\Forms\Components\Component>>
+     * @return array<string, list<Component>>
      */
     private function providerSchemas(): array
     {

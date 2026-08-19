@@ -12,7 +12,7 @@ import type {
   User,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const LARAVEL_URL = (process.env.LARAVEL_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(
@@ -28,6 +28,33 @@ type Options = RequestInit & {
   cartToken?: string | null;
   authToken?: string | null;
 };
+
+async function requestUrl(path: string, headers: Headers): Promise<string> {
+  if (typeof window !== "undefined") {
+    return `/api/v1${path}`;
+  }
+
+  try {
+    const { headers: nextHeaders } = await import("next/headers");
+    const incoming = await nextHeaders();
+    const host = (incoming.get("x-forwarded-host") ?? incoming.get("host") ?? "").split(":")[0];
+
+    if (host) {
+      headers.set("X-Etic-Store-Host", host);
+      headers.set("X-Forwarded-Host", host);
+    }
+
+    const proto = incoming.get("x-forwarded-proto");
+
+    if (proto) {
+      headers.set("X-Forwarded-Proto", proto);
+    }
+  } catch {
+    // Outside a Next.js request (build, scripts).
+  }
+
+  return `${LARAVEL_URL}/api/v1${path}`;
+}
 
 async function request<T>(path: string, options: Options = {}): Promise<T> {
   const headers = new Headers(options.headers);
@@ -45,10 +72,16 @@ async function request<T>(path: string, options: Options = {}): Promise<T> {
     headers.set("Authorization", `Bearer ${options.authToken}`);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const method = (options.method ?? "GET").toUpperCase();
+  const privateOrMutation =
+    method !== "GET" || Boolean(options.cartToken) || Boolean(options.authToken) || options.cache === "no-store";
+
+  const response = await fetch(await requestUrl(path, headers), {
     ...options,
     headers,
-    cache: "no-store",
+    ...(privateOrMutation
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: 60 } }),
   });
 
   const json = await response.json().catch(() => null);
@@ -64,7 +97,11 @@ async function request<T>(path: string, options: Options = {}): Promise<T> {
 }
 
 export function apiUrl(path: string): string {
-  return `${API_URL}${path}`;
+  if (typeof window !== "undefined") {
+    return `/api/v1${path}`;
+  }
+
+  return `${LARAVEL_URL}/api/v1${path}`;
 }
 
 export const storeApi = {
@@ -142,7 +179,8 @@ export const storeApi = {
       cartToken: token,
     }),
 
-  order: (id: string | number) => request<{ data: Order }>(`/orders/${id}`).then((r) => r.data),
+  order: (id: string | number) =>
+    request<{ data: Order }>(`/orders/${id}`, { cache: "no-store" }).then((r) => r.data),
 
   login: (email: string, password: string) =>
     request<{ data: { token: string; user: User } }>("/auth/login", {

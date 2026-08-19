@@ -18,3 +18,12 @@ it('returns empty suggestions for short queries', function () {
         ->assertOk()
         ->assertJsonPath('data', []);
 });
+
+it('serves cached suggestions on the second request', function () {
+    app(CommerceBootstrap::class)->catalog();
+
+    $first = $this->getJson(route('search.suggestions', ['q' => 'klasik']))->assertOk()->json('data');
+    $second = $this->getJson(route('search.suggestions', ['q' => 'klasik']))->assertOk()->json('data');
+
+    expect($second)->toEqual($first)->not->toBeEmpty();
+});

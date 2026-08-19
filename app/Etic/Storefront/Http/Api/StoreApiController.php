@@ -2,6 +2,7 @@
 
 namespace App\Etic\Storefront\Http\Api;
 
+use App\Etic\Catalog\Models\Brand;
 use App\Etic\CMS\Models\BlogCategory;
 use App\Etic\CMS\Models\BlogPost;
 use App\Etic\CMS\Models\Page;
@@ -13,7 +14,6 @@ use App\Etic\Storefront\CatalogQuery;
 use App\Etic\Storefront\StorefrontPaths;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Lunar\Models\Brand;
 
 class StoreApiController
 {

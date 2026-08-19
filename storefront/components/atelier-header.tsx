@@ -59,7 +59,7 @@ type SearchSuggestion = {
   price: string | null;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const API_URL = "/api/v1";
 
 export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
   const { cartCount, authToken } = useStorefront();
@@ -128,7 +128,7 @@ export function AtelierHeader({ bootstrap }: { bootstrap: Bootstrap }) {
 
     suggestionsTimer.current = window.setTimeout(() => {
       fetchSuggestions(value.trim());
-    }, 200);
+    }, 120);
   }
 
   function closeSearch() {

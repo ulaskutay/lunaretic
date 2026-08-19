@@ -8,10 +8,13 @@ use App\Etic\Storefront\Http\Api\StoreApiController;
 use App\Etic\Storefront\Http\Middleware\BindStorefrontSession;
 use Illuminate\Support\Facades\Route;
 
+Route::middleware(['throttle:60,1'])->prefix('v1')->group(function () {
+    Route::get('/search/suggestions', SearchSuggestionsController::class);
+});
+
 Route::middleware(['throttle:60,1', BindStorefrontSession::class])->prefix('v1')->group(function () {
     Route::get('/bootstrap', [StoreApiController::class, 'bootstrap']);
     Route::get('/products', [StoreApiController::class, 'products']);
-    Route::get('/search/suggestions', SearchSuggestionsController::class);
     Route::get('/products/{slug}', [StoreApiController::class, 'product']);
     Route::get('/categories', [StoreApiController::class, 'categories']);
     Route::get('/brands', [StoreApiController::class, 'brands']);

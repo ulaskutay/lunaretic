@@ -48,6 +48,7 @@ rsync -az --no-owner --no-group --delete \
   --exclude '.env.local' \
   --exclude '.env.production' \
   --exclude '.env.backup' \
+  --exclude '.user.ini' \
   --exclude '.git/' \
   --exclude 'composer.phar' \
   --exclude 'node_modules/' \

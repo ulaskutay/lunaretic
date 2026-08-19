@@ -26,6 +26,9 @@
             @if(filled($footerText))
                 <p class="mt-2 max-w-md">{{ $footerText }}</p>
             @endif
+            <div class="etic-footer__meta etic-footer__meta--default mt-4">
+                @include('etic.payment-badges')
+            </div>
         </div>
         <div class="flex flex-wrap gap-4">
             @forelse($links as $item)

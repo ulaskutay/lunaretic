@@ -17,6 +17,12 @@ it('reports scout search as disabled without meilisearch', function () {
     expect(app(CatalogProductSearch::class)->isEnabled())->toBeFalse();
 });
 
+it('finds published products by name when scout is disabled', function () {
+    app(CommerceBootstrap::class)->catalog();
+
+    expect(app(CatalogProductSearch::class)->matchingProductIds('klasik'))->not->toBeEmpty();
+});
+
 it('only indexes published products', function () {
     app(CommerceBootstrap::class)->catalog();
 
@@ -41,5 +47,7 @@ it('includes channel ids in the searchable payload', function () {
     $payload = (new ProductIndexer)->toSearchableArray($product);
 
     expect($payload)->toHaveKey('channel_ids')
-        ->and($payload['channel_ids'])->not->toBeEmpty();
+        ->and($payload['channel_ids'])->not->toBeEmpty()
+        ->and($payload)->toHaveKey('name')
+        ->and((string) $payload['name'])->not->toBeEmpty();
 });

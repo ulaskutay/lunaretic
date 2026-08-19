@@ -2,11 +2,11 @@
 
 namespace App\Etic\Integrations\Shipping;
 
+use App\Etic\Catalog\Models\TaxClass;
 use App\Etic\Support\StoreContext;
 use Lunar\DataTypes\Price;
 use Lunar\DataTypes\ShippingOption;
 use Lunar\Models\Contracts\Cart;
-use Lunar\Models\TaxClass;
 
 class TableRateShippingProvider implements ShippingProviderInterface
 {

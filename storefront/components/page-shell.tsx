@@ -1,10 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import type { Bootstrap } from "@/lib/types";
 import { Footer, Header } from "@/components/chrome";
 import { CartFeedback } from "@/components/cart-feedback";
+import { NavigationProgress } from "@/components/navigation-progress";
 
 export function PageShell({ bootstrap, children }: { bootstrap: Bootstrap; children: ReactNode }) {
   const pathname = usePathname();
@@ -29,6 +31,9 @@ export function PageShell({ bootstrap, children }: { bootstrap: Bootstrap; child
 
   return (
     <div className={flush ? "etic-body etic-body--flush" : overlay ? "etic-body" : undefined}>
+      <Suspense>
+        <NavigationProgress />
+      </Suspense>
       <Header bootstrap={bootstrap} />
       <main className={mainClass}>
         {children}

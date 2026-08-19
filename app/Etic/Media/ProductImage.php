@@ -21,11 +21,11 @@ class ProductImage
     {
         foreach (self::conversionFallback($conversion) as $name) {
             if ($media->hasGeneratedConversion($name)) {
-                return $media->getUrl($name);
+                return self::versionedUrl($media->getUrl($name), $media);
             }
         }
 
-        return $media->getUrl();
+        return self::versionedUrl($media->getUrl(), $media);
     }
 
     public static function galleryUrls(?object $model, string $conversion = 'large'): Collection
@@ -93,10 +93,17 @@ class ProductImage
     {
         return match ($conversion) {
             'original' => [],
-            'small' => ['small'],
-            'medium' => ['medium', 'large', 'small'],
-            'zoom' => ['zoom', 'large', 'medium'],
-            default => ['large', 'medium'],
+            'small' => ['small', 'medium'],
+            'medium' => ['medium', 'large', 'zoom'],
+            'zoom' => ['zoom', 'large'],
+            default => ['large', 'zoom', 'medium'],
         };
+    }
+
+    private static function versionedUrl(string $url, Media $media): string
+    {
+        $version = (string) ($media->updated_at?->timestamp ?: $media->id);
+
+        return $url.(str_contains($url, '?') ? '&' : '?').'v='.$version;
     }
 }

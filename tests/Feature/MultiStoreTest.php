@@ -1,5 +1,6 @@
 <?php
 
+use App\Etic\Catalog\Models\Product as EticProduct;
 use App\Etic\CMS\Models\Page;
 use App\Etic\Integrations\Payments\PaymentCredentials;
 use App\Etic\SEO\Models\Redirect;
@@ -13,25 +14,10 @@ beforeEach(function () {
     app(CommerceBootstrap::class)->cms();
 });
 
-function secondStore(): Store
-{
-    return Store::query()->create([
-        'handle' => 'second',
-        'name' => 'Second Store',
-        'primary_domain' => 'second.test',
-        'extra_domains' => ['www.second.test'],
-        'theme' => 'default',
-        'locale' => 'tr',
-        'currency' => 'TRY',
-        'is_active' => true,
-        'is_default' => false,
-    ]);
-}
-
 it('uses app url for ip-only storefront links after a server move', function () {
     config(['app.url' => 'http://95.217.160.252', 'etic.store.primary_url' => 'http://95.217.160.252']);
 
-    $store = Store::query()->where('handle', 'boxers')->firstOrFail();
+    $store = Store::query()->where('handle', 'omnipanel')->firstOrFail();
     $store->forceFill(['primary_domain' => '91.98.120.228'])->saveQuietly();
 
     expect($store->fresh()->primaryUrl())->toBe('http://95.217.160.252');
@@ -42,7 +28,8 @@ it('resolves a store from the request host including www aliases', function () {
 
     expect(Store::resolveByHost('second.test')?->id)->toBe($store->id)
         ->and(Store::resolveByHost('www.second.test')?->id)->toBe($store->id)
-        ->and(Store::resolveByHost('localhost')?->handle)->toBe('boxers');
+        ->and(Store::resolveByHost('localhost')?->handle)->toBe('omnipanel')
+        ->and(Store::resolveByHost('127.0.0.1')?->handle)->toBe('omnipanel');
 });
 
 it('isolates cms pages between stores', function () {
@@ -81,6 +68,16 @@ it('isolates redirects between stores', function () {
     $this->get('http://localhost/eski-sayfa')->assertNotFound();
 });
 
+it('filters catalog products with an indexed channelables exists query', function () {
+    app(StoreContext::class)->bindByHandle('omnipanel');
+
+    $sql = EticProduct::query()->toSql();
+
+    expect($sql)->toContain('exists')
+        ->and($sql)->toContain('channelables')
+        ->and($sql)->not->toContain('lunar_channels');
+});
+
 it('hides products that are not enabled on the current channel', function () {
     $second = secondStore();
     $product = Product::query()->where('status', 'published')->firstOrFail();
@@ -115,7 +112,7 @@ it('keeps payment credentials isolated per store', function () {
         'merchant_salt' => 'second-paytr-salt',
     ]);
 
-    $context->bindByHandle('boxers');
+    $context->bindByHandle('omnipanel');
     expect(app(PaymentCredentials::class)->iyzico()['api_key'])->not->toBe('second-key')
         ->and(app(PaymentCredentials::class)->paytr()['merchant_id'])->not->toBe('second-merchant');
 

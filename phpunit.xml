@@ -35,8 +35,11 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="SCOUT_DRIVER" value="null"/>
-        <env name="ETIC_STORE_HANDLE" value="boxers"/>
+        <env name="ETIC_STORE_HANDLE" value="omnipanel"/>
         <env name="ETIC_CURRENCY" value="TRY"/>
+        <env name="ETIC_BASE_DOMAIN" value="eticcommerce.test"/>
+        <env name="ETIC_CNAME_TARGET" value="cname.eticcommerce.test"/>
+        <env name="ETIC_TENANCY_FALLBACK" value="false"/>
         <env name="LUNAR_STORE_INCLUSIVE_OF_TAX" value="true"/>
         <env name="ETIC_LOCALE" value="tr"/>
         <env name="APP_LOCALE" value="tr"/>

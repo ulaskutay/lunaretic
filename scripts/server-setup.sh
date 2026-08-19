@@ -90,7 +90,8 @@ fi
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache storage/app/public
 
 "$PHP_BIN" artisan migrate --force
-"$PHP_BIN" artisan storage:link --force || true
+rm -f public/storage
+ln -sfn ../storage/app/public public/storage
 "$PHP_BIN" artisan filament:assets || true
 "$PHP_BIN" artisan optimize
 "$PHP_BIN" artisan queue:restart || true

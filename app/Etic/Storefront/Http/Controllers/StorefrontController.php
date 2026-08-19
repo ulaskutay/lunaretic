@@ -17,12 +17,14 @@ use App\Etic\Storefront\CatalogQuery;
 use App\Etic\Storefront\CheckoutPayload;
 use App\Etic\Storefront\CheckoutService;
 use App\Etic\Storefront\StorefrontPaths;
+use App\Etic\Support\StoreContext;
 use App\Etic\Theme\ActiveTheme;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Customer;
@@ -411,9 +413,11 @@ class StorefrontController
 
     public function register(Request $request): RedirectResponse
     {
+        $storeId = app(StoreContext::class)->store()?->id;
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->where('store_id', $storeId)],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -421,6 +425,7 @@ class StorefrontController
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
+            'store_id' => $storeId,
         ]);
 
         $parts = explode(' ', $data['name'], 2);
@@ -463,7 +468,7 @@ class StorefrontController
         $user = Auth::user();
 
         return view('theme::pages.account', [
-            'orders' => $user?->orders()->latest()->get() ?? collect(),
+            'orders' => $user?->storefrontOrders()->latest()->get() ?? collect(),
         ]);
     }
 
@@ -471,7 +476,7 @@ class StorefrontController
     {
         $user = Auth::user();
 
-        abort_unless($user && $user->orders()->whereKey($order->getKey())->exists(), 403);
+        abort_unless($user && $user->storefrontOrders()->whereKey($order->getKey())->exists(), 403);
 
         $order->loadMissing([
             'productLines.purchasable.product',

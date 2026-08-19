@@ -2,15 +2,27 @@
 
 namespace App\Etic\Store\Models;
 
+use App\Etic\Support\Tenancy;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Lunar\Admin\Models\Staff;
 use Lunar\Models\Channel;
 
 class Store extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'etic_stores';
+
+    /**
+     * @var array<int|string, bool>
+     */
+    private array $memberCheckCache = [];
 
     protected $fillable = [
         'handle',
@@ -22,6 +34,8 @@ class Store extends Model
         'currency',
         'is_active',
         'is_default',
+        'provisioned_at',
+        'suspended_at',
     ];
 
     protected function casts(): array
@@ -30,6 +44,8 @@ class Store extends Model
             'extra_domains' => 'array',
             'is_active' => 'boolean',
             'is_default' => 'boolean',
+            'provisioned_at' => 'datetime',
+            'suspended_at' => 'datetime',
         ];
     }
 
@@ -55,13 +71,17 @@ class Store extends Model
 
         $candidates = [$host];
 
+        if (Tenancy::isLoopbackHost($host)) {
+            $candidates = array_merge($candidates, Tenancy::loopbackHosts());
+        }
+
         if (str_starts_with($host, 'www.')) {
             $candidates[] = substr($host, 4);
         } else {
             $candidates[] = 'www.'.$host;
         }
 
-        $stores = static::query()->where('is_active', true)->get();
+        $stores = static::query()->with('customDomains')->get();
 
         foreach ($candidates as $candidate) {
             $match = $stores->first(fn (self $store) => $store->hosts()->contains($candidate));
@@ -71,6 +91,23 @@ class Store extends Model
             }
         }
 
+        if (Tenancy::isPlatformHost($host)) {
+            return static::query()
+                ->where('is_default', true)
+                ->where('is_active', true)
+                ->first();
+        }
+
+        $base = Tenancy::baseDomain();
+
+        if ($base !== '' && str_ends_with($host, '.'.$base)) {
+            $handle = substr($host, 0, -strlen('.'.$base));
+
+            return $stores->first(
+                fn (self $store) => $store->handle === $handle && $store->is_active
+            );
+        }
+
         return null;
     }
 
@@ -78,6 +115,7 @@ class Store extends Model
     {
         return collect([$this->primary_domain])
             ->merge($this->extra_domains ?? [])
+            ->merge($this->customDomains->where('status', CustomDomain::STATUS_ACTIVE)->pluck('hostname'))
             ->map(fn ($host) => self::normalizeHost(is_string($host) ? $host : null))
             ->filter()
             ->unique()
@@ -87,6 +125,60 @@ class Store extends Model
     public function channel(): Channel
     {
         return Channel::query()->where('handle', $this->handle)->firstOrFail();
+    }
+
+    public function members(): HasMany
+    {
+        return $this->hasMany(StoreMember::class)->withoutGlobalScopes();
+    }
+
+    public function customDomains(): HasMany
+    {
+        return $this->hasMany(CustomDomain::class)->withoutGlobalScopes();
+    }
+
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(StoreAuditLog::class);
+    }
+
+    public function isSuspended(): bool
+    {
+        return ! $this->is_active || $this->suspended_at !== null;
+    }
+
+    public function isCustomHost(?string $host): bool
+    {
+        $host = self::normalizeHost($host);
+        $primary = self::normalizeHost($this->primary_domain);
+
+        if ($host === '' || Tenancy::isLoopbackHost($host)) {
+            return false;
+        }
+
+        if ($this->is_default && Tenancy::isPlatformHost($host)) {
+            return false;
+        }
+
+        return $host !== $primary && $host !== 'www.'.$primary;
+    }
+
+    public function hasMember(?Staff $staff): bool
+    {
+        if (! $staff) {
+            return false;
+        }
+
+        $staffId = $staff->getKey();
+
+        if (array_key_exists($staffId, $this->memberCheckCache)) {
+            return $this->memberCheckCache[$staffId];
+        }
+
+        return $this->memberCheckCache[$staffId] = $this->members()
+            ->withoutGlobalScopes()
+            ->where('staff_id', $staffId)
+            ->exists();
     }
 
     public function primaryUrl(): string
@@ -110,9 +202,27 @@ class Store extends Model
             return $scheme.'://'.$domain;
         }
 
-        $scheme = str_contains($domain, 'localhost') || str_ends_with($domain, '.test') ? 'http' : 'https';
+        if (Tenancy::isLoopbackHost($domain)) {
+            if (app()->bound('request')) {
+                $request = request();
+                $requestHost = self::normalizeHost($request->getHost());
+
+                if (Tenancy::isLoopbackHost($requestHost)) {
+                    return rtrim($request->getSchemeAndHttpHost(), '/');
+                }
+            }
+
+            return $fallback !== '' ? $fallback : 'http://'.$domain;
+        }
+
+        $scheme = str_ends_with($domain, '.test') ? 'http' : 'https';
 
         return $scheme.'://'.$domain;
+    }
+
+    public function adminUrl(string $path = '/lunar'): string
+    {
+        return rtrim($this->primaryUrl(), '/').'/'.ltrim($path, '/');
     }
 
     public function syncChannel(): Channel
@@ -139,10 +249,43 @@ class Store extends Model
         return $channel;
     }
 
+    public function rememberHost(string $host): void
+    {
+        $host = self::normalizeHost($host);
+
+        if ($host === '' || $this->hosts()->contains($host)) {
+            return;
+        }
+
+        $extra = collect($this->extra_domains ?? [])->push($host)->unique()->values()->all();
+        $this->forceFill(['extra_domains' => $extra])->saveQuietly();
+    }
+
+    public function forgetHost(string $host): void
+    {
+        $host = self::normalizeHost($host);
+        $extra = collect($this->extra_domains ?? [])
+            ->reject(fn ($value) => self::normalizeHost(is_string($value) ? $value : null) === $host)
+            ->values()
+            ->all();
+        $this->forceFill(['extra_domains' => $extra])->saveQuietly();
+    }
+
     protected static function booted(): void
     {
         static::saving(function (self $store): void {
             $store->handle = Str::slug((string) $store->handle);
+
+            if (Tenancy::isReservedHandle($store->handle)) {
+                throw ValidationException::withMessages([
+                    'handle' => __('etic.tenancy.reserved_handle'),
+                ]);
+            }
+
+            if (blank($store->primary_domain)) {
+                $store->primary_domain = Tenancy::subdomainFor($store->handle);
+            }
+
             $store->primary_domain = self::normalizeHost($store->primary_domain) ?: null;
             $store->extra_domains = collect($store->extra_domains ?? [])
                 ->map(fn ($host) => self::normalizeHost(is_string($host) ? $host : null))
@@ -151,6 +294,12 @@ class Store extends Model
                 ->values()
                 ->all();
             $store->theme = $store->theme ?: 'default';
+
+            if ($store->is_active) {
+                $store->suspended_at = null;
+            } elseif ($store->suspended_at === null) {
+                $store->suspended_at = now();
+            }
         });
 
         static::saved(function (self $store): void {

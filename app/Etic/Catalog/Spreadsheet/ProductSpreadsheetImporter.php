@@ -2,23 +2,24 @@
 
 namespace App\Etic\Catalog\Spreadsheet;
 
+use App\Etic\Catalog\AssignProductAvailability;
+use App\Etic\Catalog\Models\Brand;
+use App\Etic\Catalog\Models\CollectionGroup;
+use App\Etic\Catalog\Models\ProductOption;
+use App\Etic\Catalog\Models\ProductOptionValue;
+use App\Etic\Catalog\Models\ProductType;
+use App\Etic\Catalog\Models\TaxClass;
 use App\Etic\Media\Jobs\AttachRemoteProductImagesJob;
 use App\Etic\Support\StoreContext;
 use App\Etic\Support\TaxClassResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Lunar\FieldTypes\TranslatedText;
-use Lunar\Models\Brand;
 use Lunar\Models\Collection;
-use Lunar\Models\CollectionGroup;
 use Lunar\Models\Currency;
 use Lunar\Models\Language;
 use Lunar\Models\Product;
-use Lunar\Models\ProductOption;
-use Lunar\Models\ProductOptionValue;
-use Lunar\Models\ProductType;
 use Lunar\Models\ProductVariant;
-use Lunar\Models\TaxClass;
 use Lunar\Models\Url;
 use Throwable;
 
@@ -276,7 +277,7 @@ class ProductSpreadsheetImporter
         }
 
         $option = ProductOption::query()->firstOrCreate(
-            ['handle' => $handle],
+            ['handle' => $handle, 'store_id' => app(StoreContext::class)->store()?->id],
             [
                 'name' => ['tr' => $label],
                 'label' => ['tr' => $label],
@@ -304,7 +305,10 @@ class ProductSpreadsheetImporter
     {
         $key = mb_strtolower($name);
 
-        return $this->brands[$key] ??= Brand::query()->firstOrCreate(['name' => $name]);
+        return $this->brands[$key] ??= Brand::query()->firstOrCreate([
+            'name' => $name,
+            'store_id' => app(StoreContext::class)->store()?->id,
+        ]);
     }
 
     private function collection(string $name): Collection
@@ -316,7 +320,7 @@ class ProductSpreadsheetImporter
         }
 
         $group = CollectionGroup::query()->firstOrCreate(
-            ['handle' => 'kategoriler'],
+            ['handle' => 'kategoriler', 'store_id' => app(StoreContext::class)->store()?->id],
             ['name' => 'Kategoriler']
         );
 
@@ -363,15 +367,7 @@ class ProductSpreadsheetImporter
 
     private function assignChannel(Product $product): void
     {
-        $channel = $this->store->channel();
-
-        $product->channels()->syncWithoutDetaching([
-            $channel->id => [
-                'enabled' => true,
-                'starts_at' => now(),
-                'ends_at' => null,
-            ],
-        ]);
+        app(AssignProductAvailability::class)->handle($product);
     }
 
     private function syncSlug(Product|Collection $model, string $name, ?string $suffix = null): void
@@ -426,7 +422,11 @@ class ProductSpreadsheetImporter
 
     private function productTypeId(): int
     {
-        return (int) (ProductType::query()->value('id') ?? ProductType::query()->create(['name' => 'Ürün'])->id);
+        return (int) (ProductType::query()->where('store_id', app(StoreContext::class)->store()?->id)->value('id')
+            ?? ProductType::query()->create([
+                'name' => 'Ürün',
+                'store_id' => app(StoreContext::class)->store()?->id,
+            ])->id);
     }
 
     private function taxClass(?string $vat): TaxClass

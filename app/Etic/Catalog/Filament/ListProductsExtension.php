@@ -2,6 +2,7 @@
 
 namespace App\Etic\Catalog\Filament;
 
+use App\Etic\Catalog\AssignProductAvailability;
 use Filament\Actions\CreateAction;
 use Illuminate\Database\Eloquent\Model;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ListProducts;
@@ -9,6 +10,15 @@ use Lunar\Admin\Support\Extending\ListPageExtension;
 
 class ListProductsExtension extends ListPageExtension
 {
+    public function getTabs(array $tabs): array
+    {
+        if (isset($tabs['draft'])) {
+            $tabs['draft']->badge(null);
+        }
+
+        return $tabs;
+    }
+
     public function headerActions(array $actions): array
     {
         foreach ($actions as $action) {
@@ -29,6 +39,8 @@ class ListProductsExtension extends ListPageExtension
     {
         $product = ListProducts::createRecord($data, $model);
         $product->forceFill(['status' => 'published'])->save();
+
+        app(AssignProductAvailability::class)->handle($product);
 
         return $product->refresh();
     }

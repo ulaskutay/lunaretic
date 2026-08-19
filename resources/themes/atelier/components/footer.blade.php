@@ -73,7 +73,10 @@
                 </div>
             </div>
 
-            <p class="etic-footer__copyright">&copy; {{ date('Y') }} {{ $logoText }}</p>
+            <div class="etic-footer__meta">
+                <p class="etic-footer__copyright">&copy; {{ date('Y') }} {{ $logoText }}</p>
+                @include('etic.payment-badges')
+            </div>
         </div>
 
         <aside class="etic-footer__aside">

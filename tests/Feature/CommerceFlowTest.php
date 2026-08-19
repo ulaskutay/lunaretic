@@ -11,6 +11,7 @@ use App\Etic\Orders\OrderStatusScenario;
 use App\Etic\SEO\CanonicalUrl;
 use App\Etic\SEO\Models\Redirect;
 use App\Etic\Support\CommerceBootstrap;
+use App\Etic\Support\StoreContext;
 use App\Models\User;
 use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\Http;
@@ -541,6 +542,7 @@ it('shows order details to the authenticated owner', function () {
     $user = User::factory()->create();
     $order = Order::factory()->create([
         'user_id' => $user->id,
+        'channel_id' => app(StoreContext::class)->channelId(),
         'status' => OrderStatusScenario::PAYMENT_OFFLINE,
         'currency_code' => 'TRY',
         'compare_currency_code' => 'TRY',
@@ -558,6 +560,7 @@ it('forbids viewing another users order detail', function () {
     $other = User::factory()->create();
     $order = Order::factory()->create([
         'user_id' => $owner->id,
+        'channel_id' => app(StoreContext::class)->channelId(),
         'currency_code' => 'TRY',
         'compare_currency_code' => 'TRY',
     ]);
@@ -637,7 +640,10 @@ it('uploads a png product image and generates a thumbnail', function () {
         ->and($media->hasGeneratedConversion('small'))->toBeTrue()
         ->and(ProductImage::url($product->fresh(), 'large'))->toContain('/storage/')
         ->and(ProductImage::url($product->fresh(), 'large'))->toContain('/conversions/')
-        ->and(ProductImage::url($product->fresh(), 'small'))->toContain('/conversions/');
+        ->and(ProductImage::url($product->fresh(), 'large'))->toContain('.webp')
+        ->and(ProductImage::url($product->fresh(), 'large'))->toContain('v=')
+        ->and(ProductImage::url($product->fresh(), 'small'))->toContain('/conversions/')
+        ->and(ProductImage::url($product->fresh(), 'small'))->toContain('.webp');
 
     @unlink($path);
 });

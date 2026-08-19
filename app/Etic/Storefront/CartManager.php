@@ -3,8 +3,10 @@
 namespace App\Etic\Storefront;
 
 use App\Etic\Integrations\Marketing\TrackingDispatcher;
+use App\Etic\Support\StoreContext;
 use Illuminate\Support\Str;
 use Lunar\Base\Validation\CouponValidatorInterface;
+use Lunar\Exceptions\Carts\CartException;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\Discounts;
 use Lunar\Models\Cart;
@@ -20,8 +22,9 @@ class CartManager
     public function current(): Cart
     {
         $token = $this->incomingToken();
+        $channelId = app(StoreContext::class)->channelId();
 
-        if ($token && $existing = $this->findByToken($token)) {
+        if ($token && $existing = $this->findByToken($token, $channelId)) {
             CartSession::use($existing);
 
             return $existing->calculate();
@@ -50,7 +53,11 @@ class CartManager
             throw new RuntimeException('Yeterli stok yok.');
         }
 
-        $cart = $this->current()->add($variant, $quantity);
+        try {
+            $cart = $this->current()->add($variant, $quantity);
+        } catch (CartException $e) {
+            throw new RuntimeException($e->getMessage());
+        }
         $price = $variant->prices->first();
         $this->tracking->record('add_to_cart', [
             'item_id' => $variant->sku,
@@ -137,10 +144,11 @@ class CartManager
         return filled($header) ? (string) $header : null;
     }
 
-    private function findByToken(string $token): ?Cart
+    private function findByToken(string $token, ?int $channelId = null): ?Cart
     {
         return Cart::query()
             ->where('meta->storefront_token', $token)
+            ->when($channelId, fn ($query) => $query->where('channel_id', $channelId))
             ->latest('id')
             ->first();
     }

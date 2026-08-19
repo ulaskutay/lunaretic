@@ -2,6 +2,7 @@
 
 namespace App\Etic\Media;
 
+use App\Etic\Support\StoreContext;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -94,6 +95,7 @@ class MediaLibraryUploader
             ->withCustomProperties([
                 'name' => $label,
                 'primary' => $primary,
+                'store_handle' => app(StoreContext::class)->handle() ?: 'platform',
             ])
             ->toMediaCollection($collection);
     }

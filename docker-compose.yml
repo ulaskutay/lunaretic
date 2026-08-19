@@ -6,8 +6,11 @@ services:
     environment:
       MEILI_ENV: development
       MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-dev-master-key}
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_LOG_LEVEL: WARN
     volumes:
       - meilisearch_data:/meili_data
+    restart: unless-stopped
 
 volumes:
   meilisearch_data:

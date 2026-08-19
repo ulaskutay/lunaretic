@@ -3,11 +3,13 @@
 namespace App\Etic\Storefront\Http\Api;
 
 use App\Etic\Storefront\StorefrontAuth;
+use App\Etic\Support\StoreContext;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Lunar\Models\Customer;
 
@@ -17,9 +19,11 @@ class AuthApiController
 
     public function register(Request $request): JsonResponse
     {
+        $storeId = app(StoreContext::class)->store()?->id;
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->where('store_id', $storeId)],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -27,6 +31,7 @@ class AuthApiController
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
+            'store_id' => $storeId,
         ]);
 
         $parts = explode(' ', $data['name'], 2);
@@ -79,7 +84,7 @@ class AuthApiController
                     'name' => $user->name,
                     'email' => $user->email,
                 ],
-                'orders' => $user->orders()->latest()->get()->map(fn ($order) => [
+                'orders' => $user->storefrontOrders()->latest()->get()->map(fn ($order) => [
                     'id' => $order->id,
                     'reference' => $order->reference,
                     'status' => $order->status,

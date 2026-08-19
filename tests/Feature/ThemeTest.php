@@ -26,7 +26,7 @@ it('discovers the atelier theme from theme.json', function () {
 });
 
 it('switches the storefront to the atelier overlay header', function () {
-    Store::query()->where('handle', 'boxers')->update(['theme' => 'atelier']);
+    Store::query()->where('handle', 'omnipanel')->update(['theme' => 'atelier']);
 
     $this->get('/')
         ->assertOk()
@@ -71,7 +71,7 @@ it('keeps the default header when the store theme is default', function () {
 });
 
 it('renders a theme preview without publishing it', function () {
-    Store::query()->where('handle', 'boxers')->update(['theme' => 'default']);
+    Store::query()->where('handle', 'omnipanel')->update(['theme' => 'default']);
 
     $this->get('/?theme_preview=atelier')
         ->assertOk()
@@ -79,7 +79,7 @@ it('renders a theme preview without publishing it', function () {
         ->assertSee('etic-header--overlay', false)
         ->assertSee('Playfair Display', false);
 
-    expect(Store::query()->where('handle', 'boxers')->value('theme'))->toBe('default');
+    expect(Store::query()->where('handle', 'omnipanel')->value('theme'))->toBe('default');
 });
 
 it('discovers the default theme from theme.json', function () {
@@ -97,14 +97,14 @@ it('keeps default and atelier theme settings isolated', function () {
         'logo_text' => 'Default Shop',
     ]);
 
-    Store::query()->where('handle', 'boxers')->update(['theme' => 'atelier']);
-    app(StoreContext::class)->bindByHandle('boxers');
+    Store::query()->where('handle', 'omnipanel')->update(['theme' => 'atelier']);
+    app(StoreContext::class)->bindByHandle('omnipanel');
 
     expect(app(ThemeSettings::class)->get('font_heading'))->toBe('playfair')
         ->and(app(ThemeSettings::class)->get('logo_text'))->toBeNull();
 
-    Store::query()->where('handle', 'boxers')->update(['theme' => 'default']);
-    app(StoreContext::class)->bindByHandle('boxers');
+    Store::query()->where('handle', 'omnipanel')->update(['theme' => 'default']);
+    app(StoreContext::class)->bindByHandle('omnipanel');
 
     expect(app(ThemeSettings::class)->get('font_heading'))->toBe('display')
         ->and(app(ThemeSettings::class)->get('logo_text'))->toBe('Default Shop');
@@ -114,7 +114,7 @@ it('shows the theme picker and selected theme settings in admin', function () {
     app(CommerceBootstrap::class)->admin();
     $staff = Staff::query()->firstOrFail();
 
-    Store::query()->where('handle', 'boxers')->update(['theme' => 'atelier']);
+    Store::query()->where('handle', 'omnipanel')->update(['theme' => 'atelier']);
 
     $this->actingAs($staff, 'staff')
         ->get('/lunar/tema-ayarlari')
@@ -163,8 +163,8 @@ it('includes a favicon on home and catalog pages', function () {
 });
 
 it('hides disabled atelier sections on the storefront', function () {
-    Store::query()->where('handle', 'boxers')->update(['theme' => 'atelier']);
-    app(StoreContext::class)->bindByHandle('boxers');
+    Store::query()->where('handle', 'omnipanel')->update(['theme' => 'atelier']);
+    app(StoreContext::class)->bindByHandle('omnipanel');
     app(ThemeSettings::class)->save([
         'hero_enabled' => false,
         'featured_enabled' => false,

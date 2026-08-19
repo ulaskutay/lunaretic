@@ -2,6 +2,7 @@
 
 namespace App\Etic\Storefront;
 
+use App\Etic\Support\StoreContext;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -22,9 +23,15 @@ class StorefrontAuth
             return null;
         }
 
-        $id = Cache::get($this->key($token));
+        $id = Cache::get($this->key((string) $token));
+        $user = $id ? User::query()->find($id) : null;
+        $storeId = app(StoreContext::class)->store()?->id;
 
-        return $id ? User::query()->find($id) : null;
+        if ($user && $storeId && (int) $user->store_id !== (int) $storeId) {
+            return null;
+        }
+
+        return $user;
     }
 
     public function forget(?string $token): void
@@ -36,6 +43,8 @@ class StorefrontAuth
 
     private function key(string $token): string
     {
-        return 'etic.storefront.auth.'.$token;
+        $storeId = app(StoreContext::class)->store()?->id ?: '0';
+
+        return 'etic.storefront.auth.'.$storeId.'.'.$token;
     }
 }

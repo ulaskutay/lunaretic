@@ -2,7 +2,7 @@
 
 return [
     'store' => [
-        'handle' => env('ETIC_STORE_HANDLE', 'boxers'),
+        'handle' => env('ETIC_STORE_HANDLE', 'omnipanel'),
         'name' => env('ETIC_STORE_NAME', 'Etic Commerce'),
         'primary_url' => env('APP_URL', 'http://localhost:8000'),
         'locale' => env('ETIC_LOCALE', 'tr'),
@@ -17,7 +17,22 @@ return [
     ],
 
     'tenancy' => [
-        'fallback_to_default' => true,
+        'fallback_to_default' => (bool) env('ETIC_TENANCY_FALLBACK', false),
+        'base_domain' => env('ETIC_BASE_DOMAIN', ''),
+        'platform_hosts' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('ETIC_PLATFORM_HOSTS', ''))
+        ))),
+        'reserved_handles' => [
+            'www', 'admin', 'api', 'mail', 'lunar', 'platform', 'app', 'static',
+            'cdn', 'ftp', 'ns1', 'ns2', 'smtp', 'webmail', 'cpanel', 'status',
+        ],
+        'max_custom_domains' => (int) env('ETIC_MAX_CUSTOM_DOMAINS', 3),
+        'cname_target' => env('ETIC_CNAME_TARGET', ''),
+        'cloudflare' => [
+            'api_token' => env('CLOUDFLARE_API_TOKEN', ''),
+            'zone_id' => env('CLOUDFLARE_ZONE_ID', ''),
+        ],
     ],
 
     'storefront' => [
@@ -104,7 +119,7 @@ return [
     ],
 
     'search' => [
-        'max_results' => (int) env('ETIC_SEARCH_MAX_RESULTS', 1000),
+        'max_results' => (int) env('ETIC_SEARCH_MAX_RESULTS', 250),
     ],
 
     'tracking' => [

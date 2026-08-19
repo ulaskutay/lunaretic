@@ -7,6 +7,7 @@ import type { Bootstrap } from "@/lib/types";
 import { useStorefront } from "@/lib/store";
 import { AtelierHeader } from "@/components/atelier-header";
 import { MegaPanel, megaTiles } from "@/components/mega-menu";
+import { PaymentBadges } from "@/components/payment-badges";
 
 export function Header({ bootstrap }: { bootstrap: Bootstrap }) {
   if (bootstrap.theme.handle === "atelier" || bootstrap.theme.header_style === "overlay") {
@@ -174,9 +175,12 @@ export function Footer({ bootstrap }: { bootstrap: Bootstrap }) {
             </div>
           </div>
 
-          <p className="etic-footer__copyright">
-            &copy; {new Date().getFullYear()} {theme.logo_text}
-          </p>
+          <div className="etic-footer__meta">
+            <p className="etic-footer__copyright">
+              &copy; {new Date().getFullYear()} {theme.logo_text}
+            </p>
+            <PaymentBadges />
+          </div>
         </div>
 
         <aside className="etic-footer__aside">

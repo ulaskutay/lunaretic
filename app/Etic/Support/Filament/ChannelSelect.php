@@ -12,10 +12,10 @@ class ChannelSelect
     {
         return Select::make($name)
             ->label(__('etic.filament.stores.channel'))
-            ->options(fn () => Channel::query()->orderBy('name')->pluck('name', 'id'))
+            ->options(fn () => Channel::query()->whereKey(app(StoreContext::class)->channelId())->pluck('name', 'id'))
             ->default(fn () => app(StoreContext::class)->channelId())
             ->required()
-            ->searchable()
-            ->preload();
+            ->hidden()
+            ->dehydrated();
     }
 }

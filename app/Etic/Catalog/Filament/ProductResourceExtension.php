@@ -9,6 +9,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductIdentifiers as LunarManageProductIdentifiers;
 use Lunar\Admin\Support\Extending\ResourceExtension;
 
@@ -31,6 +32,13 @@ class ProductResourceExtension extends ResourceExtension
     public function extendTable(Table $table): Table
     {
         return $table
+            ->deferLoading(false)
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                'brand',
+                'productType',
+                'variants',
+                'media',
+            ]))
             ->pushColumns([
                 TextColumn::make('model_code')
                     ->label(__('etic.filament.catalog.model_code.label'))

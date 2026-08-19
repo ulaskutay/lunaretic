@@ -3,6 +3,7 @@
 namespace App\Etic\Catalog\Models;
 
 use App\Etic\Search\ProductIndexer;
+use Lunar\Models\Contracts\CustomerGroup as CustomerGroupContract;
 use Lunar\Models\Product as LunarProduct;
 use Lunar\Search\ScoutIndexer;
 
@@ -31,5 +32,12 @@ class Product extends LunarProduct
         $config = config('lunar.search.indexers', []);
 
         return app($config[static::class] ?? ScoutIndexer::class);
+    }
+
+    public static function getExtraCustomerGroupPivotValues(CustomerGroupContract $customerGroup): array
+    {
+        return [
+            'purchasable' => (bool) $customerGroup->default,
+        ];
     }
 }

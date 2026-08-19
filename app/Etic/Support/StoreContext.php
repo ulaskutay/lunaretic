@@ -16,6 +16,8 @@ class StoreContext
 
     private bool $bound = false;
 
+    private bool $bypassIsolation = false;
+
     private ?Channel $channel = null;
 
     private ?Currency $currency = null;
@@ -25,7 +27,7 @@ class StoreContext
     public function bind(?Store $store): void
     {
         $this->store = $store;
-        $this->bound = $store !== null;
+        $this->bound = true;
         $this->channel = null;
         $this->currency = null;
         $this->language = null;
@@ -34,6 +36,56 @@ class StoreContext
     public function bindByHandle(string $handle): void
     {
         $this->bind($this->findStoreByHandle($handle));
+    }
+
+    public function bindFromModel(?object $model): void
+    {
+        if (! $model) {
+            return;
+        }
+
+        if (isset($model->store_id) && $model->store_id) {
+            $store = Store::query()->find($model->store_id);
+
+            if ($store) {
+                $this->bind($store);
+
+                return;
+            }
+        }
+
+        $handle = null;
+
+        if (method_exists($model, 'channels')) {
+            $handle = $model->channels()->wherePivot('enabled', true)->value('handle')
+                ?? $model->channels()->value('handle');
+        }
+
+        if (! is_string($handle) || $handle === '') {
+            $channelId = $model->channel_id ?? null;
+            $handle = $channelId ? Channel::query()->whereKey($channelId)->value('handle') : null;
+        }
+
+        if (is_string($handle) && $handle !== '') {
+            $this->bindByHandle($handle);
+        }
+    }
+
+    public function isolationBypassed(): bool
+    {
+        return $this->bypassIsolation;
+    }
+
+    public function withoutIsolation(callable $callback): mixed
+    {
+        $previous = $this->bypassIsolation;
+        $this->bypassIsolation = true;
+
+        try {
+            return $callback();
+        } finally {
+            $this->bypassIsolation = $previous;
+        }
     }
 
     public function store(): ?Store
@@ -74,9 +126,17 @@ class StoreContext
         }
 
         $handle = $this->handle();
+        $channel = Channel::query()->where('handle', $handle)->first();
 
-        return $this->channel = Channel::query()->where('handle', $handle)->first()
-            ?? Channel::query()->where('default', true)->firstOrFail();
+        if ($channel) {
+            return $this->channel = $channel;
+        }
+
+        if ($this->bound && $this->store) {
+            throw new \RuntimeException('Mağaza kanalı bulunamadı: '.$handle);
+        }
+
+        return $this->channel = Channel::query()->where('default', true)->firstOrFail();
     }
 
     public function channelId(): ?int

@@ -2,6 +2,7 @@
 
 namespace App\Etic\Storefront\Http\Api;
 
+use App\Etic\Catalog\Models\Brand;
 use App\Etic\CMS\CmsPageLayout;
 use App\Etic\CMS\Models\BlogPost;
 use App\Etic\CMS\Models\Menu;
@@ -21,7 +22,6 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection as SupportCollection;
 use Lunar\DataTypes\Price;
 use Lunar\DataTypes\ShippingOption;
-use Lunar\Models\Brand;
 use Lunar\Models\Cart;
 use Lunar\Models\Collection;
 use Lunar\Models\Order;
@@ -97,7 +97,7 @@ class StorefrontPresenter
             'name' => $product->translateAttribute('name'),
             'slug' => $product->defaultUrl?->slug,
             'status' => $product->status,
-            'image' => $this->absolute(ProductImage::url($product, 'medium')),
+            'image' => $this->absolute(ProductImage::url($product, 'large')),
             'price' => $this->money($price?->priceIncTax()),
             'compare_price' => $this->comparePrice($price),
             'brand' => $product->brand?->name,
